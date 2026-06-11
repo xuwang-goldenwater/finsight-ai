@@ -65,13 +65,29 @@ st.markdown("""
 [data-testid="stMainBlockContainer"] > div {
     background-color: var(--bg-page) !important;
 }
+
+/* ── Hide Streamlit native top toolbar (causes white-bar overlap) ── */
+[data-testid="stHeader"],
+header[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+#MainMenu,
+footer { visibility: hidden !important; height: 0 !important; }
+
 [data-testid="stSidebar"] {
     background-color: var(--bg-card) !important;
     border-right: 1px solid var(--border) !important;
 }
+
+/* ── Main panel — no top gap after hiding native header ──────────── */
 [data-testid="stMainBlockContainer"] {
-    padding-top: 1.25rem !important;
+    padding-top: 0.75rem !important;
     max-width: 1280px;
+}
+
+/* ── Sidebar top padding compensation ───────────────────────────── */
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1.5rem !important;
 }
 
 /* ── Typography ─────────────────────────────────────────────────── */
@@ -463,6 +479,75 @@ hr { border: none !important; border-top: 1px solid var(--border) !important; ma
     font-size: 0.85rem !important;
     line-height: 1.65 !important;
     color: var(--text-primary) !important;
+}
+
+/* ── Brand header block ─────────────────────────────────────────── */
+.brand-header {
+    font-family: var(--mono);
+    margin: 0 0 6px;
+    padding: 0;
+    line-height: 1;
+}
+.brand-header h1 {
+    margin: 0 0 5px !important;
+    padding: 0 !important;
+    font-size: 1.55rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    /* Override Streamlit h1 size reset */
+    font-family: var(--mono) !important;
+}
+.brand-header .brand-sub {
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 12px;
+    letter-spacing: 0;
+}
+.brand-header .brand-meta {
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    margin-top: 3px;
+}
+.brand-header .brand-ticker {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.85rem;
+    margin-right: 10px;
+}
+.brand-header .brand-tag {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-right: 8px;
+}
+
+/* ── MoS label row ──────────────────────────────────────────────── */
+.mos-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin: 10px 0 4px;
+    font-family: var(--mono);
+}
+.mos-row .mos-lbl {
+    font-size: 0.74rem;
+    color: var(--text-secondary);
+}
+.mos-row .mos-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: nowrap;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1121,35 +1206,16 @@ _mode_meta = (f"{T['snapshot_label']}: {backtest_year}"
 
 # ── 全局大标题（主面板最顶部，宽度充足，不折行）─────────────────────
 st.markdown(
-    "<div style='"
-    "font-family:'JetBrains Mono','Fira Code',monospace;"
-    "margin-bottom:6px;"
-    "'>"
-    # 品牌行
-    "<h1 style='"
-    "margin:0 0 4px;padding:0;"
-    "font-size:1.6rem;font-weight:700;"
-    "color:#1b1f23;letter-spacing:-0.02em;line-height:1.25;"
-    "white-space:nowrap;"  # 主面板够宽，永不折行
-    "'>📊 问巴菲特与达利欧"
-    "<span style='font-size:1.0rem;font-weight:500;color:#57606a;"
-    "margin-left:12px;letter-spacing:0;'>"
-    "Ask Buffett &amp; Dalio</span>"
-    "</h1>"
-    # 副信息行：股票代码 · 模式 · 日期
-    f"<div style='"
-    f"font-size:0.75rem;color:#8c959f;"
-    f"letter-spacing:0.04em;margin-top:2px;"
-    f"'>"
-    f"<span style='font-weight:700;color:#0550ae;"
-    f"font-size:0.88rem;margin-right:10px;'>{ticker_input or '—'}</span>"
-    f"<span style='background:#f3f4f6;border:1px solid #e1e4e8;"
-    f"border-radius:4px;padding:1px 8px;font-size:0.62rem;"
-    f"font-weight:600;letter-spacing:0.10em;text-transform:uppercase;"
-    f"color:#57606a;margin-right:8px;'>{_mode_tag}</span>"
-    f"<span>{_mode_meta}</span>"
-    f"</div>"
-    "</div>",
+    f'<div class="brand-header">'
+    f'<h1>📊 问巴菲特与达利欧'
+    f'<span class="brand-sub">Ask Buffett &amp; Dalio</span>'
+    f'</h1>'
+    f'<div class="brand-meta">'
+    f'<span class="brand-ticker">{ticker_input or "—"}</span>'
+    f'<span class="brand-tag">{_mode_tag}</span>'
+    f'<span>{_mode_meta}</span>'
+    f'</div>'
+    f'</div>',
     unsafe_allow_html=True,
 )
 st.divider()
@@ -1272,21 +1338,16 @@ if not is_backtest:
             if mos is not None:
                 mos_color = ("#2da44e" if mos >= 10
                              else ("#9a6700" if mos >= -10 else "#cf222e"))
-                # MoS 标签行 — 用 st.columns 原生布局，不污染 st.progress 上下文
-                _ml, _mr = st.columns([2, 1], gap="small")
-                _ml.markdown(
-                    f'<span style="font-family:var(--mono);'
-                    f'font-size:0.74rem;color:var(--text-secondary);">'
-                    f'{T["mos_progress_lbl"]}</span>',
+                # MoS 标签行 — CSS class 布局；st.progress 独占下一行
+                st.markdown(
+                    f'<div class="mos-row">'
+                    f'<span class="mos-lbl">{T["mos_progress_lbl"]}</span>'
+                    f'<span class="mos-val" style="color:{mos_color};">'
+                    f'{_fmt_pct(mos)}</span>'
+                    f'</div>',
                     unsafe_allow_html=True,
                 )
-                _mr.markdown(
-                    f'<span style="font-family:var(--mono);font-weight:700;'
-                    f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
-                    f'{_fmt_pct(mos)}</span>',
-                    unsafe_allow_html=True,
-                )
-                # st.progress 独占整行 — 无任何前后 HTML 包裹
+                # st.progress 独占整行 — 无嵌套列，CSS clear:both 隔离上方 div
                 bar_val = min(max((mos + 60) / 120, 0.0), 1.0)
                 st.progress(bar_val)
 
@@ -1486,17 +1547,12 @@ else:
 
         if mos_h is not None:
             mos_color = "#2da44e" if mos_h >= 0 else "#cf222e"
-            _ml2, _mr2 = st.columns([2, 1], gap="small")
-            _ml2.markdown(
-                f'<span style="font-family:var(--mono);'
-                f'font-size:0.74rem;color:var(--text-secondary);">'
-                f'{T["mos_progress_lbl"]}</span>',
-                unsafe_allow_html=True,
-            )
-            _mr2.markdown(
-                f'<span style="font-family:var(--mono);font-weight:700;'
-                f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
-                f'{_fmt_pct(mos_h)}</span>',
+            st.markdown(
+                f'<div class="mos-row">'
+                f'<span class="mos-lbl">{T["mos_progress_lbl"]}</span>'
+                f'<span class="mos-val" style="color:{mos_color};">'
+                f'{_fmt_pct(mos_h)}</span>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
             bar_val = min(max((mos_h + 60) / 120, 0.0), 1.0)
