@@ -17,6 +17,7 @@ FinSight AI — LLM 驱动的三层投资分析 Agent
 """
 
 import os
+import re
 import json
 import textwrap
 import argparse
