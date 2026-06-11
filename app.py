@@ -67,12 +67,47 @@ st.markdown("""
 }
 
 /* ── Hide Streamlit native top toolbar (causes white-bar overlap) ── */
+/* Scope precisely — do NOT use stToolbar directly; it may wrap the   */
+/* sidebar collapse trigger in some Streamlit versions.               */
 [data-testid="stHeader"],
 header[data-testid="stHeader"],
-[data-testid="stToolbar"],
 [data-testid="stDecoration"],
 #MainMenu,
 footer { visibility: hidden !important; height: 0 !important; }
+
+/* Hide only the toolbar action buttons (deploy/share/etc),           */
+/* NOT the wrapper — preserves sidebar collapse trigger inside it.    */
+[data-testid="stToolbar"] { background: transparent !important; }
+[data-testid="stToolbarActions"] { visibility: hidden !important; }
+
+/* ── Sidebar collapse / expand trigger — always visible ────────── */
+/* Explicitly override any cascade that might hide these buttons.     */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapse"],
+button[kind="header"],
+[data-testid="collapsedControl"] {
+    visibility: visible !important;
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    background-color: var(--bg-overlay) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    z-index: 999991 !important;
+}
+[data-testid="stSidebarCollapsedControl"]:hover,
+[data-testid="stSidebarCollapse"]:hover,
+[data-testid="collapsedControl"]:hover {
+    background-color: var(--bg-card) !important;
+    border-color: var(--accent) !important;
+}
+[data-testid="stSidebarCollapsedControl"] svg,
+[data-testid="stSidebarCollapse"] svg,
+[data-testid="collapsedControl"] svg {
+    fill: var(--text-primary) !important;
+    color: var(--text-primary) !important;
+}
 
 [data-testid="stSidebar"] {
     background-color: var(--bg-card) !important;
