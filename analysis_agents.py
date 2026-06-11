@@ -619,19 +619,34 @@ _COMMITTEE_SYSTEM_ZH = """\
 你将被研究的公司视为一台运转于宏观经济与债务周期中的"现金流机器"，\
 用系统机器思维拆解其每一个驱动齿轮，而非凭感觉做判断。
 
-【绝对时序基准 — 严格遵守】
-• 当前绝对基准年份：2026 年。
-• 2024 年、2025 年的数据与事件属【已发生历史事实】，必须使用过去时态：
-  "2024年实现了…" / "2025年已完成…"。
-  严禁对 2024/2025 使用"将"、"预计"、"计划"等预测性词汇。
-• 仅 2026 年下半年及以后，方可使用"将推出"、"预期"等前瞻性表述。
-• 若输入数据仅截至 2024 年，须在报告开头写明：
-  "⚠️ 注：以下分析基于2024年历史财务数据，2025–2026年最新数据待更新。"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【时间校准 & 数据缺口强制补全指令 — 最高优先级，绝对执行】
+
+● 今日绝对日期：{today}
+● 本次量化财务数据截止日期：{data_date}
+● 数据时差：约 {data_lag} 个月
+
+规则一（时态）：
+  2024 年、2025 年及 {data_date} 之前发生的一切均属【已发生历史事实】。
+  必须用过去时态描述。严禁将 2024/2025 年的已知事实写成预测性语句。
+
+规则二（禁止敷衍声明）：
+  ⛔ 严禁出现"最新数据待更新"、"数据暂不可用"、"待补充"等推卸性表述。
+  若量化数据落后，你必须主动利用大模型知识补全时间差：
+  - 引用你所知的该公司最新季报要点、营收/利润趋势
+  - 引用分析师对 FY2025/FY2026 的 EPS 预估和 Forward P/E
+  - 说明 {data_date} 至今的重大战略进展（产品、并购、市场份额）
+  并用以下格式标注知识来源：
+  **[模型知识补全 · 截至 {today}]**
+
+规则三（前瞻性）：
+  仅对 {today} 之后未发生的事件，方可使用"预期"、"将"等前瞻词汇。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 严格按照达利欧【五步流程法】输出完整 Markdown 报告，每步 ≤220 字：
 
 # FinSight 深度投资报告 — {ticker}
-**生成时间**: {date}  |  **方法论**: Ray Dalio《原则》五步流程
+**生成时间**: {date}  |  **数据截止**: {data_date}  |  **方法论**: Ray Dalio《原则》五步流程
 
 ---
 
@@ -669,19 +684,35 @@ You are the FinSight AI Investment Committee, operating under Ray Dalio's "Princ
 You treat every company as a cash-flow machine running inside a macro and debt cycle. \
 You use Systems/Machine Thinking — decompose every driver, never rely on gut feel.
 
-[ABSOLUTE TIME ANCHOR — STRICTLY ENFORCED]
-• Current absolute reference year: 2026.
-• Data and events from 2024 and 2025 are HISTORICAL FACTS. Always use past tense:
-  "FY2024 results showed…" / "The company completed X in 2025…"
-  NEVER use "will", "expected to", "plans to" for anything that already occurred in 2024 or 2025.
-• Forward-looking language is ONLY permitted for H2 2026 and beyond.
-• If the input data only covers through FY2024, you MUST open the report with:
-  "⚠️ Note: This analysis is based on historical financial data through FY2024. FY2025–2026 data pending update."
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[TIME CALIBRATION & DATA-GAP BRIDGING — HIGHEST PRIORITY, ALWAYS ENFORCE]
+
+● Today's absolute date: {today}
+● Quantitative financial data covers through: {data_date}
+● Data lag: approximately {data_lag} months
+
+Rule 1 (Tense):
+  All data and events prior to {data_date} are HISTORICAL FACTS.
+  Always use past tense. NEVER describe 2024/2025 facts with forward-looking language.
+
+Rule 2 (No Cop-Out Disclaimers):
+  ⛔ NEVER write "latest data pending", "data unavailable", or any equivalent dodge.
+  If quantitative data is stale, you MUST actively bridge the gap using your model knowledge:
+  - Cite the company's most recent quarterly earnings highlights and revenue/profit trends
+  - Reference analyst consensus EPS estimates and Forward P/E for FY2025/FY2026
+  - Describe material strategic developments since {data_date} (products, M&A, market share)
+  Label any knowledge beyond the quantitative data with:
+  **[Model Knowledge Supplement · as of {today}]**
+
+Rule 3 (Forward-Looking):
+  Forward-looking language ("will", "expected to", "is projected to") is ONLY permitted
+  for events that have NOT yet occurred as of {today}.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Output a complete Markdown report strictly following Dalio's Five-Step Process (each step ≤220 words):
 
 # FinSight Deep Investment Report — {ticker}
-**Generated**: {date}  |  **Framework**: Ray Dalio's Principles — Five-Step Process
+**Generated**: {date}  |  **Data through**: {data_date}  |  **Framework**: Ray Dalio's Principles
 
 ---
 
@@ -733,7 +764,7 @@ def run_investment_committee(
     参数:
         ticker          : 股票代码
         metrics_json    : 基本面指标 dict/JSON
-        dcf_json        : DCF 结果 dict/JSON
+        dcf_json        : DCF 结果 dict/JSON（应含 latest_data_date 字段）
         causal_analysis : Layer 1 输出的因果分析文本
         broker_views    : Layer 2 输出的多空观点 dict
         model           : LLM 模型
@@ -743,11 +774,43 @@ def run_investment_committee(
     """
     client = _get_client()
     ticker_upper = ticker.upper()
-    today = datetime.now().strftime("%Y-%m-%d")
+    today_str    = datetime.now().strftime("%Y-%m-%d")
+    today_dt     = datetime.now()
 
-    # ── 构建系统 Prompt（填充 ticker 和日期）──────────────
+    # ── 解析 latest_data_date，计算时差（月数）─────────────
+    dcf_dict = dcf_json if isinstance(dcf_json, dict) else {}
+    if isinstance(dcf_json, str):
+        try:
+            dcf_dict = json.loads(dcf_json)
+        except Exception:
+            dcf_dict = {}
+
+    raw_data_date = dcf_dict.get("latest_data_date") or "unknown"
+
+    if raw_data_date != "unknown":
+        try:
+            from datetime import datetime as _DT
+            data_dt  = _DT.strptime(raw_data_date[:10], "%Y-%m-%d")
+            lag_days = (today_dt - data_dt).days
+            lag_months = max(0, round(lag_days / 30.4))
+        except Exception:
+            lag_months = 0
+    else:
+        lag_months = 0
+
+    data_date_label = raw_data_date[:10] if raw_data_date != "unknown" else "unknown"
+    data_lag_label  = f"{lag_months}" if lag_months > 0 else "<1"
+
+    # ── 构建系统 Prompt（填充所有占位符）────────────────────
     base_system = _COMMITTEE_SYSTEM_EN if lang == "en" else _COMMITTEE_SYSTEM_ZH
-    system = base_system.replace("{ticker}", ticker_upper).replace("{date}", today)
+    system = (
+        base_system
+        .replace("{ticker}",    ticker_upper)
+        .replace("{date}",      today_str)
+        .replace("{today}",     today_str)
+        .replace("{data_date}", data_date_label)
+        .replace("{data_lag}",  data_lag_label)
+    )
 
     # ── 构建用户 Prompt：汇总三层数据 ─────────────────────
     bullish_str = "\n".join(f"  - {b}" for b in broker_views.get("bullish", []))
@@ -757,14 +820,31 @@ def run_investment_committee(
     slim_m = _slim_metrics(metrics_json)
     slim_d = _slim_dcf(dcf_json)
 
+    gap_note = ""
+    if lag_months >= 12:
+        if lang == "en":
+            gap_note = (
+                f"\n[DATA FRESHNESS ALERT] Quantitative data covers through {data_date_label} "
+                f"({data_lag_label} months ago). You MUST bridge the gap using model knowledge "
+                f"for FY2025/FY2026 earnings, analyst estimates, and strategic developments. "
+                f"Label bridged content with [Model Knowledge Supplement · as of {today_str}].\n"
+            )
+        else:
+            gap_note = (
+                f"\n[数据新鲜度警告] 量化数据截至 {data_date_label}（约 {data_lag_label} 个月前）。"
+                f"你必须用模型知识补全 {data_date_label} 至今的 FY2025/FY2026 财报摘要、"
+                f"分析师EPS预估、战略进展，并标注【模型知识补全 · 截至 {today_str}】。\n"
+            )
+
     user_prompt = (
         f"股票:{ticker_upper}\n"
         f"指标:{_compact_json(slim_m)}\n"
         f"DCF:{_compact_json(slim_d)}\n"
-        f"因果分析摘要:{causal_analysis[:600]}\n"   # 截断防超长
+        f"因果分析摘要:{causal_analysis[:600]}\n"
         f"多方:{bullish_str}\n"
         f"空方:{bearish_str}\n"
         f"评级:{consensus}"
+        f"{gap_note}"
     )
     return _chat(client, system, user_prompt, model=model,
                  temperature=0.6, max_tokens=_MAX_TOKENS["committee"])
@@ -871,10 +951,11 @@ _CHAT_SYSTEM_ZH = """\
   • 始终区分"已知事实""合理推断""高度不确定"三个层次
   • 如被问到估值，必须给出区间而非单点，并说明关键假设
 
-【绝对时序基准】当前为2026年。2024/2025年的事件和数据属已发生历史事实，\
-必须用过去时态描述，严禁使用"将"、"预计"等预测性词汇。\
-仅2026年下半年及之后可使用前瞻性表述。\
-若数据仅截至2024年，须明确告知用户"该信息为2024年历史数据"。
+【时间校准】今日：{today} | 量化数据截至：{data_date}（约 {data_lag} 个月前）
+• {data_date} 之前的所有数据和事件属历史事实，必须用过去时态。
+• 若投资者问及量化数据截止日期后的情况，主动用模型知识补全，
+  并标注"【模型知识 · 截至 {today}】"，绝不用"数据待更新"敷衍。
+• 仅对 {today} 之后未发生的事件使用前瞻性表述。
 
 你手上已有以下背景材料（不要在回复中重复罗列，直接引用相关数字）：
 --- 量化指标摘要 ---
@@ -897,10 +978,12 @@ Your conversational style:
   • Always distinguish "known facts" / "reasonable inference" / "highly uncertain"
   • When asked about valuation, give a range, never a single point, and state key assumptions
 
-[TIME ANCHOR] Current year is 2026. Events and data from 2024 and 2025 are historical facts — \
-always use past tense. Never say "will" or "is expected to" about things that already happened in \
-2024/2025. Forward-looking language is only permitted for H2 2026 onward. \
-If data only covers through 2024, explicitly tell the user: "This is based on FY2024 historical data."
+[TIME CALIBRATION] Today: {today} | Quantitative data covers through: {data_date} (~{data_lag} months ago)
+• All data and events before {data_date} are historical facts — always past tense.
+• If the investor asks about anything after {data_date}, proactively bridge the gap using your
+  model knowledge of recent earnings, analyst estimates, and strategic developments.
+  Label it: "[Model Knowledge · as of {today}]" — never say "data pending" or "not available".
+• Forward-looking language is only permitted for events that have not yet occurred as of {today}.
 
 You have the following background material (do NOT recite it; reference relevant numbers directly):
 --- Quantitative Metrics Summary ---
@@ -949,10 +1032,34 @@ def answer_investor_question(
     dcf_snapshot     = _compact_json(slim_d)[:400]
     report_snippet   = agent_report[:800] if agent_report else "（尚未生成报告）"
 
+    # ── 解析时间元数据（与 committee 保持一致）────────────────
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_dt  = datetime.now()
+    dcf_dict  = dcf_json if isinstance(dcf_json, dict) else {}
+    if isinstance(dcf_json, str):
+        try:
+            dcf_dict = json.loads(dcf_json)
+        except Exception:
+            dcf_dict = {}
+    raw_data_date   = dcf_dict.get("latest_data_date") or "unknown"
+    data_date_label = raw_data_date[:10] if raw_data_date != "unknown" else "unknown"
+    if raw_data_date != "unknown":
+        try:
+            from datetime import datetime as _DT
+            lag_months = max(0, round((today_dt - _DT.strptime(raw_data_date[:10], "%Y-%m-%d")).days / 30.4))
+        except Exception:
+            lag_months = 0
+    else:
+        lag_months = 0
+    data_lag_label = f"{lag_months}" if lag_months > 0 else "<1"
+
     base_system = _CHAT_SYSTEM_EN if lang == "en" else _CHAT_SYSTEM_ZH
     system = (
         base_system
         .replace("{ticker}",           ticker.upper())
+        .replace("{today}",            today_str)
+        .replace("{data_date}",        data_date_label)
+        .replace("{data_lag}",         data_lag_label)
         .replace("{metrics_snapshot}", metrics_snapshot)
         .replace("{dcf_snapshot}",     dcf_snapshot)
         .replace("{report_snippet}",   report_snippet)

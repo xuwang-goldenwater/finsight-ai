@@ -90,19 +90,32 @@ def safe_get(data: dict, *keys, default=None):
 def fetch_financials(ticker: str) -> dict:
     """
     拉取 yfinance 财务数据，返回原始 dict。
-    包含：income_stmt, balance_sheet, cashflow, info, history
+    包含：income_stmt, balance_sheet, cashflow, info, history,
+          quarterly_income, quarterly_cashflow, quarterly_balance
+
+    TTM 逻辑：
+    - 若年报最新列的年份落后当前年 ≥1 年，自动尝试拼接季报
+      计算 TTM（Trailing Twelve Months）数据，并记录真实截止日期。
+    - latest_data_date 字段：格式 'YYYY-MM-DD'，告知下游数据截止点。
 
     yfinance 1.x 已内建 curl_cffi 支持（安装后自动启用），
     无需手动传入 session，传入反而会引发兼容错误。
     """
+    import datetime as _dt
     tk = yf.Ticker(ticker)
     result = {
-        "income_stmt":    None,
-        "balance_sheet":  None,
-        "cashflow":       None,
-        "info":           {},
-        "history":        None,
-        "ticker_obj":     tk,
+        "income_stmt":         None,
+        "balance_sheet":       None,
+        "cashflow":            None,
+        "info":                {},
+        "history":             None,
+        "ticker_obj":          tk,
+        # 季报（用于 TTM 合成）
+        "quarterly_income":    None,
+        "quarterly_cashflow":  None,
+        "quarterly_balance":   None,
+        # 数据真实截止日期（YYYY-MM-DD），由 _resolve_latest_date() 填入
+        "latest_data_date":    None,
     }
 
     # 各数据块独立拉取，单块失败不影响其他
@@ -117,6 +130,18 @@ def fetch_financials(ticker: str) -> dict:
         df = getattr(t, "cash_flow", None)
         if df is None or (hasattr(df, "empty") and df.empty):
             df = getattr(t, "cashflow", None)
+        return df
+
+    def _get_quarterly_income(t):
+        df = getattr(t, "quarterly_income_stmt", None)
+        if df is None or (hasattr(df, "empty") and df.empty):
+            df = getattr(t, "quarterly_financials", None)
+        return df
+
+    def _get_quarterly_cashflow(t):
+        df = getattr(t, "quarterly_cash_flow", None)
+        if df is None or (hasattr(df, "empty") and df.empty):
+            df = getattr(t, "quarterly_cashflow", None)
         return df
 
     def _get_info(t):
@@ -173,11 +198,14 @@ def fetch_financials(ticker: str) -> dict:
         return hist
 
     _pulls = [
-        ("income_stmt",   lambda: _get_income(tk)),
-        ("balance_sheet", lambda: tk.balance_sheet),
-        ("cashflow",      lambda: _get_cashflow(tk)),
-        ("info",          lambda: _get_info(tk)),
-        ("history",       lambda: _get_history(tk)),
+        ("income_stmt",        lambda: _get_income(tk)),
+        ("balance_sheet",      lambda: tk.balance_sheet),
+        ("cashflow",           lambda: _get_cashflow(tk)),
+        ("info",               lambda: _get_info(tk)),
+        ("history",            lambda: _get_history(tk)),
+        ("quarterly_income",   lambda: _get_quarterly_income(tk)),
+        ("quarterly_cashflow", lambda: _get_quarterly_cashflow(tk)),
+        ("quarterly_balance",  lambda: getattr(tk, "quarterly_balance_sheet", None)),
     ]
     for key, fn in _pulls:
         for attempt in range(3):
@@ -196,7 +224,116 @@ def fetch_financials(ticker: str) -> dict:
         # 各块之间随机短暂间隔，降低触发频率
         time.sleep(random.uniform(0.3, 0.8))
 
+    # ── 解析真实数据截止日期，并在需要时合成 TTM 列 ──────────────
+    result["latest_data_date"] = _resolve_latest_date(result)
+
     return result
+
+
+def _col_date(df: "pd.DataFrame") -> "pd.Timestamp | None":
+    """返回 DataFrame 列中最新的一个日期（Timestamp），列可能是 DatetimeIndex 或字符串。"""
+    if df is None or df.empty:
+        return None
+    try:
+        cols = pd.to_datetime(df.columns, errors="coerce")
+        valid = cols.dropna()
+        return valid.max() if not valid.empty else None
+    except Exception:
+        return None
+
+
+def _resolve_latest_date(data: dict) -> str:
+    """
+    解析本次拉取的真实数据截止日期：
+
+    策略：
+    1. 用年报最新列日期作为基准。
+    2. 若年报最新列落后当前年 ≥1 年，且季报有更新的数据，
+       则用季报最新列日期作为截止日期，并把 TTM 合成列注入
+       income_stmt / cashflow / balance_sheet（列名为 'TTM'）。
+    3. 返回 'YYYY-MM-DD' 字符串，无法解析则返回 'unknown'。
+    """
+    import datetime as _dt
+    today = _dt.date.today()
+    current_year = today.year
+
+    annual_date  = _col_date(data.get("income_stmt"))
+    q_inc_date   = _col_date(data.get("quarterly_income"))
+    q_cf_date    = _col_date(data.get("quarterly_cashflow"))
+    q_bs_date    = _col_date(data.get("quarterly_balance"))
+
+    # 选取最新季报日期
+    quarterly_dates = [d for d in [q_inc_date, q_cf_date, q_bs_date] if d is not None]
+    latest_q_date   = max(quarterly_dates) if quarterly_dates else None
+
+    # 基准截止日期：默认用年报
+    cutoff_date = annual_date
+
+    # 如果年报落后 ≥1 年，且季报更新 → 合成 TTM 并更新截止日期
+    if (annual_date is not None
+            and latest_q_date is not None
+            and annual_date.year < current_year
+            and latest_q_date > annual_date):
+
+        cutoff_date = latest_q_date
+
+        for df_key, q_key in [
+            ("income_stmt",  "quarterly_income"),
+            ("cashflow",     "quarterly_cashflow"),
+            ("balance_sheet","quarterly_balance"),
+        ]:
+            annual_df    = data.get(df_key)
+            quarterly_df = data.get(q_key)
+            ttm_col = _build_ttm_column(annual_df, quarterly_df)
+            if ttm_col is not None and annual_df is not None and not annual_df.empty:
+                ttm_label = f"TTM ({str(cutoff_date)[:10]})"
+                # 插入 TTM 列作为最新列（最左列）
+                try:
+                    data[df_key] = pd.concat(
+                        [annual_df, ttm_col.rename(ttm_label)], axis=1
+                    )
+                except Exception:
+                    pass
+
+    if cutoff_date is None:
+        # 最后兜底：用季报日期
+        cutoff_date = latest_q_date
+
+    if cutoff_date is None:
+        return "unknown"
+
+    return str(cutoff_date)[:10]
+
+
+def _build_ttm_column(annual_df: "pd.DataFrame",
+                       quarterly_df: "pd.DataFrame") -> "pd.Series | None":
+    """
+    用最近 4 个季度数据合成 TTM（流量类科目做加法，余额类取最新季度）。
+
+    流量科目（利润表、现金流）：TTM = 最新 4 季之和。
+    余额科目（资产负债表）：TTM = 最新季度值（快照，不加总）。
+
+    返回 pd.Series（index = 科目名），失败返回 None。
+    """
+    if quarterly_df is None or quarterly_df.empty:
+        return None
+    try:
+        # 季报列按时间升序排列，取最右边 4 列
+        q = quarterly_df.sort_index(axis=1, ascending=True)
+        n = min(4, q.shape[1])
+        recent_4q = q.iloc[:, -n:]
+        # 判断是否为资产负债表（列数多，科目中含 Asset / Equity 等关键词）
+        idx_str = " ".join(str(i).lower() for i in quarterly_df.index)
+        is_balance = any(k in idx_str for k in
+                         ("asset", "equity", "liabilit", "stockholder", "debt"))
+        if is_balance:
+            ttm = recent_4q.iloc[:, -1]   # 余额取最新季度快照
+        else:
+            ttm = recent_4q.sum(axis=1)   # 流量做 4Q 加总
+        ttm = pd.to_numeric(ttm, errors="coerce")
+        return ttm
+    except Exception:
+        return None
 
 
 def _row(df: pd.DataFrame, *candidates) -> pd.Series:
@@ -219,7 +356,10 @@ def _row(df: pd.DataFrame, *candidates) -> pd.Series:
 
 def calculate_metrics(data: dict) -> pd.DataFrame:
     """
-    计算 5 个核心价值投资指标，返回按年份索引的 DataFrame。
+    计算 5 个核心价值投资指标，返回按年份/TTM 索引的 DataFrame。
+
+    若 fetch_financials() 已合成 TTM 列，该列会出现在 DataFrame 最右侧，
+    行索引形如 'TTM (2025-09-30)'，供下游识别数据新鲜度。
 
     指标:
         ROE          净资产收益率  = Net Income / Stockholders' Equity
@@ -318,9 +458,24 @@ def calculate_metrics(data: dict) -> pd.DataFrame:
         "D/E Ratio":        de_ratio,
     })
 
-    # 按时间升序排列，取最近 5 年
-    metrics = metrics.sort_index(ascending=True).tail(5)
-    metrics.index = [str(d)[:10] for d in metrics.index]
+    # 按时间升序排列，取最近 5 年（含 TTM 列如果存在）
+    # TTM 列的列名形如 'TTM (2025-09-30)'，需排在最后不参与 tail 截断
+    ttm_cols  = [c for c in metrics.columns if str(c).startswith("TTM")]
+    norm_cols = [c for c in metrics.columns if not str(c).startswith("TTM")]
+
+    if ttm_cols:
+        # 先对非 TTM 列排序并取最近 4 年，再拼接 TTM 列
+        metrics_norm = metrics[norm_cols].sort_index(ascending=True).tail(4)
+        metrics_ttm  = metrics[ttm_cols]
+        metrics = pd.concat([metrics_norm, metrics_ttm])
+    else:
+        metrics = metrics.sort_index(ascending=True).tail(5)
+
+    # 规范化索引：日期取前 10 字符，TTM 标签保留原样
+    metrics.index = [
+        str(d) if str(d).startswith("TTM") else str(d)[:10]
+        for d in metrics.index
+    ]
     return metrics
 
 
@@ -376,12 +531,16 @@ def calculate_dcf_value(
         "cash":                 None,
         "total_debt":           None,
         "shares":               None,
+        "latest_data_date":     None,   # 数据真实截止日期，由 fetch_financials 填入
         "error":                None,
     }
 
     try:
         data = _data if _data is not None else fetch_financials(ticker)
         tk   = data["ticker_obj"]
+
+        # ── 数据截止日期（直接从 fetch_financials 结果中读取）────
+        result["latest_data_date"] = data.get("latest_data_date")
 
         # ── 当前股价 ──────────────────────────
         hist = data["history"]
@@ -710,13 +869,17 @@ def analyze(
     ticker: str,
     discount_rate: float   = DEFAULT_DISCOUNT_RATE,
     terminal_growth: float = DEFAULT_TERMINAL_GROWTH,
-) -> tuple[pd.DataFrame, dict]:
+) -> tuple[pd.DataFrame, dict, dict]:
     """
-    完整分析入口，返回 (metrics_df, dcf_result_dict)。
+    完整分析入口，返回 (metrics_df, dcf_result_dict, info_dict)。
+
+    dcf_result_dict 包含 'latest_data_date' 字段（YYYY-MM-DD），
+    标识本次量化数据的真实截止日期（可能为年报日期或 TTM 季报日期）。
 
     示例:
         from financial_engine import analyze
-        metrics, dcf = analyze("AAPL")
+        metrics, dcf, info = analyze("AAPL")
+        print(dcf["latest_data_date"])  # e.g. '2025-09-30'
     """
     # 只拉取一次，metrics 和 dcf 共享同一份数据，避免双倍请求
     data    = fetch_financials(ticker)
