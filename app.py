@@ -66,45 +66,42 @@ st.markdown("""
     background-color: var(--bg-page) !important;
 }
 
-/* ── Hide Streamlit native top toolbar (causes white-bar overlap) ── */
-/* Scope precisely — do NOT use stToolbar directly; it may wrap the   */
-/* sidebar collapse trigger in some Streamlit versions.               */
+/* ── Streamlit 顶部 Header 处理策略 ────────────────────────────────
+   ⚠️  绝对不能对 stHeader 设置 height:0 / visibility:hidden ——
+       stSidebarCollapsedControl（收起后的展开箭头）是 stHeader 的
+       子元素，父级被杀死后展开按钮会永久消失、无法点击。
+   正确做法：保留 header 的 DOM 与高度，只把视觉噪音逐项隐藏。
+   ─────────────────────────────────────────────────────────────── */
+
+/* 1. Header 壳体：背景透明、无边框，不影响布局高度 */
 [data-testid="stHeader"],
-header[data-testid="stHeader"],
-[data-testid="stDecoration"],
-#MainMenu,
-footer { visibility: hidden !important; height: 0 !important; }
+header[data-testid="stHeader"] {
+    background-color: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
 
-/* Hide only the toolbar action buttons (deploy/share/etc),           */
-/* NOT the wrapper — preserves sidebar collapse trigger inside it.    */
-[data-testid="stToolbar"] { background: transparent !important; }
-[data-testid="stToolbarActions"] { visibility: hidden !important; }
+/* 2. 逐项隐藏不需要的子元素（display:none 彻底移出流） */
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stToolbarActions"] { display: none !important; }
+#MainMenu { display: none !important; }
+footer    { display: none !important; }
 
-/* ── Sidebar collapse / expand trigger — always visible ────────── */
-/* Explicitly override any cascade that might hide these buttons.     */
-[data-testid="stSidebarCollapsedControl"],
-[data-testid="stSidebarCollapse"],
-button[kind="header"],
-[data-testid="collapsedControl"] {
-    visibility: visible !important;
-    display: flex !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
+/* 3. 侧边栏展开按钮 —— 显式激活，浅色模式清晰可见 */
+[data-testid="stSidebarCollapsedControl"] {
     background-color: var(--bg-overlay) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border) !important;
+    border: 1px solid var(--border-strong) !important;
     border-radius: 6px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
     z-index: 999991 !important;
 }
-[data-testid="stSidebarCollapsedControl"]:hover,
-[data-testid="stSidebarCollapse"]:hover,
-[data-testid="collapsedControl"]:hover {
+[data-testid="stSidebarCollapsedControl"]:hover {
     background-color: var(--bg-card) !important;
     border-color: var(--accent) !important;
 }
-[data-testid="stSidebarCollapsedControl"] svg,
-[data-testid="stSidebarCollapse"] svg,
-[data-testid="collapsedControl"] svg {
+[data-testid="stSidebarCollapsedControl"] svg {
     fill: var(--text-primary) !important;
     color: var(--text-primary) !important;
 }
@@ -114,15 +111,16 @@ button[kind="header"],
     border-right: 1px solid var(--border) !important;
 }
 
-/* ── Main panel — no top gap after hiding native header ──────────── */
+/* ── Main panel ─────────────────────────────────────────────────── */
+/* Header 仍在 DOM 中占位（高度约 3rem），内容从 header 下方自然开始 */
 [data-testid="stMainBlockContainer"] {
-    padding-top: 0.75rem !important;
+    padding-top: 1rem !important;
     max-width: 1280px;
 }
 
-/* ── Sidebar top padding compensation ───────────────────────────── */
+/* ── Sidebar 内容顶部留白 ────────────────────────────────────────── */
 [data-testid="stSidebar"] > div:first-child {
-    padding-top: 1.5rem !important;
+    padding-top: 1rem !important;
 }
 
 /* ── Typography ─────────────────────────────────────────────────── */
