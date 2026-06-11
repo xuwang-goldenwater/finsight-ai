@@ -33,506 +33,436 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-/* ════════════════════════════════════════════════════════════════════
-   FINSIGHT AI — DESIGN SYSTEM v3
-   Theme: Light Tech Terminal · Investment-Bank Research
-   Palette: Clean whites · Charcoal type · Muted signal borders
-   ════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════
+   问巴菲特与达利欧 | Ask Buffett & Dalio
+   Design System v4 — Light Tech Terminal
+   Rule: CSS vars only, no hardcoded hex outside :root
+   ═══════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
 
 :root {
-    /* Backgrounds */
-    --bg-base:       #f4f5f6;
-    --bg-surface:    #ffffff;
-    --bg-raised:     #f0f2f4;
-    --bg-overlay:    #eaedf0;
-    /* Borders */
-    --border-subtle: #e1e4e6;
-    --border-muted:  #d0d7de;
-    /* Type */
+    --bg-page:       #f8f9fa;
+    --bg-card:       #ffffff;
+    --bg-subtle:     #f3f4f6;
+    --bg-overlay:    #e9ecef;
+    --border:        #e1e4e8;
+    --border-strong: #c9cdd2;
     --text-primary:  #1b1f23;
     --text-secondary:#57606a;
     --text-muted:    #8c959f;
-    /* Signals — used ONLY as thin accent lines, not fills */
-    --accent-blue:   #0969da;
-    --accent-green:  #2da44e;
-    --accent-red:    #cf222e;
-    --accent-yellow: #9a6700;
-    /* Font */
-    --mono-font: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    --accent:        #0550ae;
+    --signal-bull:   #1a7f37;
+    --signal-bear:   #c01c2c;
+    --signal-hold:   #7d4e00;
+    --mono:          'JetBrains Mono', 'Fira Code', 'SF Mono', ui-monospace, monospace;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   APP SHELL — light base
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Shell ──────────────────────────────────────────────────────── */
 .stApp,
 [data-testid="stAppViewContainer"],
-[data-testid="stMain"] {
-    background-color: var(--bg-base) !important;
+[data-testid="stMain"],
+[data-testid="stMainBlockContainer"] > div {
+    background-color: var(--bg-page) !important;
 }
 [data-testid="stSidebar"] {
-    background-color: var(--bg-surface) !important;
-    border-right: 1px solid var(--border-subtle) !important;
+    background-color: var(--bg-card) !important;
+    border-right: 1px solid var(--border) !important;
 }
-/* Widen the main content area padding slightly */
 [data-testid="stMainBlockContainer"] {
-    padding-top: 1.5rem !important;
+    padding-top: 1.25rem !important;
+    max-width: 1280px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   GLOBAL TYPOGRAPHY
-   ══════════════════════════════════════════════════════════════════ */
-html, body {
-    font-family: var(--mono-font) !important;
-    color: var(--text-primary) !important;
-    background-color: var(--bg-base) !important;
+/* ── Typography ─────────────────────────────────────────────────── */
+html, body,
+p, li, span, div, label, td, th, button,
+.stMarkdown, .stText, .stCaption, [class*="css"] {
+    font-family: var(--mono) !important;
     -webkit-font-smoothing: antialiased;
 }
-/* Cascade mono to all Streamlit-generated text nodes */
-p, li, span, div, label, td, th, button,
-.stMarkdown, .stText, .stCaption,
-[class*="css"] {
-    font-family: var(--mono-font) !important;
+html, body {
+    background-color: var(--bg-page) !important;
+    color: var(--text-primary) !important;
 }
-p, li { line-height: 1.6 !important; color: var(--text-primary); }
-
+p, li { line-height: 1.65 !important; color: var(--text-primary); }
 h1, h2, h3, h4 {
-    font-family: var(--mono-font) !important;
+    font-family: var(--mono) !important;
     font-weight: 700 !important;
     color: var(--text-primary) !important;
-    letter-spacing: -0.01em !important;
+    letter-spacing: -0.015em !important;
+    line-height: 1.3 !important;
 }
-h1 { font-size: 1.35rem !important; }
-h2 { font-size: 1.10rem !important; }
-h3 { font-size: 0.96rem !important; }
+h1 { font-size: 1.4rem !important; }
+h2 { font-size: 1.1rem !important; }
+h3 { font-size: 0.95rem !important; }
+hr { border: none !important; border-top: 1px solid var(--border) !important; margin: 18px 0 !important; }
 
-hr { border: none !important; border-top: 1px solid var(--border-subtle) !important; margin: 20px 0 !important; }
-
-/* ══════════════════════════════════════════════════════════════════
-   DECISION BADGES  (BUY / HOLD / SELL)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Decision Badges ────────────────────────────────────────────── */
 .badge-buy, .badge-hold, .badge-sell {
     display: inline-block;
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-weight: 700;
-    font-size: 1.0rem;
-    letter-spacing: 0.08em;
+    font-size: 0.95rem;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
-    padding: 5px 20px;
-    border-radius: 3px;
-    border-width: 1px;
-    border-style: solid;
+    padding: 5px 22px;
+    border-radius: 4px;
+    border: 1.5px solid;
     background: transparent;
 }
-.badge-buy  { color: var(--accent-green);  border-color: var(--accent-green); }
-.badge-hold { color: var(--accent-yellow); border-color: var(--accent-yellow); }
-.badge-sell { color: var(--accent-red);    border-color: var(--accent-red); }
+.badge-buy  { color: var(--signal-bull); border-color: var(--signal-bull); }
+.badge-hold { color: var(--signal-hold); border-color: var(--signal-hold); }
+.badge-sell { color: var(--signal-bear); border-color: var(--signal-bear); }
 
-/* ══════════════════════════════════════════════════════════════════
-   SECTION TITLE  (small caps label above a group)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Section Label ──────────────────────────────────────────────── */
 .section-title {
-    font-family: var(--mono-font);
-    font-size: 0.65rem;
+    font-family: var(--mono);
+    font-size: 0.63rem;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: var(--text-secondary);
-    padding-left: 8px;
-    border-left: 2px solid var(--accent-blue);
-    margin: 18px 0 8px;
+    color: var(--text-muted);
+    padding: 0 0 0 9px;
+    border-left: 2px solid var(--accent);
+    margin: 20px 0 8px;
     line-height: 1.4;
+    display: block;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   KPI BOX  — label on top, value below, no fixed widths
-   ══════════════════════════════════════════════════════════════════ */
+/* ── KPI Box ────────────────────────────────────────────────────── */
+/* Uses display:block spans — no overflow, no fixed height            */
 .kpi-box {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 5px;
-    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 14px 11px;
     margin-bottom: 8px;
-    /* CRITICAL: no overflow:hidden, no fixed height */
 }
 .kpi-label {
-    font-family: var(--mono-font);
-    font-size: 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-    margin-bottom: 3px;
-    white-space: nowrap;
     display: block;
-}
-.kpi-value {
-    font-family: var(--mono-font);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    white-space: nowrap;
-    display: block;
-    line-height: 1.3;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   MOS CANVAS — price pair + MoS row
-   Uses native st.columns for grid; CSS only styles the cards.
-   ══════════════════════════════════════════════════════════════════ */
-.price-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 5px;
-    padding: 12px 14px;
-    /* flex/grid handled by Streamlit columns — no fixed width here */
-}
-.price-card-label {
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.62rem;
     font-weight: 500;
     letter-spacing: 0.10em;
     text-transform: uppercase;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+    white-space: nowrap;
+}
+.kpi-value {
     display: block;
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+/* ── Price Card (used inside st.columns — no flex needed here) ─── */
+.price-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 13px 16px;
+}
+.price-card-label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.60rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
     white-space: nowrap;
 }
 .price-card-value {
-    font-family: var(--mono-font);
-    font-size: 1.35rem;
+    display: block;
+    font-family: var(--mono);
+    font-size: 1.45rem;
     font-weight: 700;
     color: var(--text-primary);
     white-space: nowrap;
+    line-height: 1.15;
+}
+.price-card-value.intrinsic { color: var(--accent); }
+
+/* ── MoS percentage row ─────────────────────────────────────────── */
+.mos-label {
     display: block;
-    line-height: 1.2;
-}
-.price-card-value.intrinsic { color: var(--accent-blue); }
-
-.mos-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin: 10px 0 4px;
-    font-family: var(--mono-font);
-    font-size: 0.78rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
     color: var(--text-secondary);
-}
-.mos-pct {
-    font-family: var(--mono-font);
-    font-size: 1.05rem;
-    font-weight: 700;
-    white-space: nowrap;
+    margin-bottom: 4px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   COMPANY CARD
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Company Card ───────────────────────────────────────────────── */
 .company-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 18px 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px 16px;
     margin-bottom: 20px;
 }
 .company-name {
-    font-family: var(--mono-font);
-    font-size: 1.2rem;
+    font-family: var(--mono);
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-primary);
     margin: 0 0 2px;
+    letter-spacing: -0.01em;
 }
 .company-meta {
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.73rem;
     color: var(--text-muted);
 }
 .company-tag {
     display: inline-block;
-    background: var(--bg-overlay);
+    background: var(--bg-subtle);
     color: var(--text-secondary);
-    border: 1px solid var(--border-subtle);
-    border-radius: 3px;
-    padding: 1px 7px;
-    font-family: var(--mono-font);
-    font-size: 0.68rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-family: var(--mono);
+    font-size: 0.67rem;
     letter-spacing: 0.04em;
     margin: 4px 4px 0 0;
 }
 .price-big {
-    font-family: var(--mono-font);
-    font-size: 1.45rem;
+    font-family: var(--mono);
+    font-size: 1.4rem;
     font-weight: 700;
-    color: var(--accent-green);
+    color: var(--signal-bull);
     white-space: nowrap;
+    letter-spacing: -0.01em;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   BULL / BEAR CARDS  — white base, 3 px left signal border only
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Bull / Bear Cards — white base, 3px left signal only ──────── */
 .bull-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-left: 3px solid var(--accent-green);
-    border-radius: 5px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--signal-bull);
+    border-radius: 6px;
     padding: 11px 15px;
     margin-bottom: 8px;
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.84rem;
     color: var(--text-primary);
-    line-height: 1.6;
+    line-height: 1.65;
 }
 .bear-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-left: 3px solid var(--accent-red);
-    border-radius: 5px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--signal-bear);
+    border-radius: 6px;
     padding: 11px 15px;
     margin-bottom: 8px;
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.84rem;
     color: var(--text-primary);
-    line-height: 1.6;
+    line-height: 1.65;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SIGNAL BADGES  (inline pill above bull/bear list)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Signal Badge Pills ─────────────────────────────────────────── */
 .signal-badge-bull,
 .signal-badge-bear {
     display: inline-block;
     background: transparent;
     border-radius: 3px;
-    padding: 2px 9px;
-    font-family: var(--mono-font);
-    font-size: 0.65rem;
+    padding: 2px 10px;
+    font-family: var(--mono);
+    font-size: 0.63rem;
     font-weight: 700;
-    letter-spacing: 0.09em;
+    letter-spacing: 0.10em;
     text-transform: uppercase;
     margin-bottom: 12px;
-    border-width: 1px;
-    border-style: solid;
+    border: 1px solid;
 }
-.signal-badge-bull { color: var(--accent-green); border-color: var(--accent-green); }
-.signal-badge-bear { color: var(--accent-red);   border-color: var(--accent-red); }
+.signal-badge-bull { color: var(--signal-bull); border-color: var(--signal-bull); }
+.signal-badge-bear { color: var(--signal-bear); border-color: var(--signal-bear); }
 
-/* ══════════════════════════════════════════════════════════════════
-   CONSENSUS BAR
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Consensus Bar ──────────────────────────────────────────────── */
 .consensus-bar {
-    background: var(--bg-overlay);
-    border: 1px solid var(--border-subtle);
-    border-radius: 5px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 6px;
     padding: 9px 13px;
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.80rem;
     color: var(--text-secondary);
     margin-bottom: 14px;
     line-height: 1.55;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   TWO-STAGE DCF BADGE
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Two-Stage DCF Badge ────────────────────────────────────────── */
 .two-stage-badge {
     display: block;
-    background: var(--bg-overlay);
-    border-left: 2px solid var(--accent-blue);
-    border-radius: 3px;
-    padding: 5px 10px;
-    font-family: var(--mono-font);
-    font-size: 0.67rem;
+    background: var(--bg-subtle);
+    border-left: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 6px 11px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
     font-weight: 600;
-    color: var(--accent-blue);
-    letter-spacing: 0.07em;
+    color: var(--accent);
+    letter-spacing: 0.08em;
     margin-bottom: 10px;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   REPORT BODY  (Dalio 5-step report rendered via st.markdown)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Report Body ────────────────────────────────────────────────── */
 .report-body {
-    font-family: var(--mono-font);
+    font-family: var(--mono);
     font-size: 0.87rem;
-    line-height: 1.7;
+    line-height: 1.72;
     color: var(--text-primary);
 }
 .report-body h3, .report-body h4 {
-    font-family: var(--mono-font) !important;
+    font-family: var(--mono) !important;
     color: var(--text-primary) !important;
-    margin: 18px 0 6px !important;
+    margin: 20px 0 6px !important;
 }
-.report-body h3 { font-size: 0.90rem !important; font-weight: 700 !important; }
-.report-body h4 { font-size: 0.85rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
+.report-body h3 { font-size: 0.88rem !important; font-weight: 700 !important; }
+.report-body h4 { font-size: 0.84rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
 .report-body blockquote {
-    border-left: 2px solid var(--border-muted);
-    padding-left: 12px;
+    border-left: 2px solid var(--border-strong);
+    padding-left: 13px;
     margin: 10px 0;
     color: var(--text-secondary);
     font-style: normal;
 }
 .report-body code {
-    font-family: var(--mono-font);
-    background: var(--bg-overlay);
-    border: 1px solid var(--border-subtle);
+    font-family: var(--mono);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
     border-radius: 3px;
-    padding: 1px 4px;
+    padding: 1px 5px;
     font-size: 0.85em;
     color: var(--text-primary);
 }
-.report-body hr { border-top: 1px solid var(--border-subtle) !important; }
+.report-body hr { border-top: 1px solid var(--border) !important; margin: 16px 0 !important; }
 
-/* ══════════════════════════════════════════════════════════════════
-   TABS
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Tabs ───────────────────────────────────────────────────────── */
 [data-testid="stTabs"] [data-baseweb="tab-list"] {
     background: transparent !important;
-    border-bottom: 1px solid var(--border-subtle) !important;
+    border-bottom: 1px solid var(--border) !important;
     gap: 0 !important;
 }
 [data-testid="stTabs"] [data-baseweb="tab"] {
-    font-family: var(--mono-font) !important;
-    font-size: 0.77rem !important;
+    font-family: var(--mono) !important;
+    font-size: 0.76rem !important;
     font-weight: 500 !important;
     color: var(--text-secondary) !important;
     background: transparent !important;
     border-bottom: 2px solid transparent !important;
-    padding: 8px 14px !important;
+    padding: 8px 16px !important;
     letter-spacing: 0.04em !important;
 }
 [data-testid="stTabs"] [aria-selected="true"] {
     color: var(--text-primary) !important;
-    border-bottom-color: var(--accent-blue) !important;
+    border-bottom-color: var(--accent) !important;
     font-weight: 700 !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ST.METRIC — override to match light theme & mono font
-   ══════════════════════════════════════════════════════════════════ */
+/* ── st.metric ──────────────────────────────────────────────────── */
 [data-testid="stMetricValue"] {
-    font-family: var(--mono-font) !important;
+    font-family: var(--mono) !important;
     font-size: 1.05rem !important;
     font-weight: 700 !important;
     white-space: nowrap !important;
     color: var(--text-primary) !important;
 }
 [data-testid="stMetricLabel"] {
-    font-family: var(--mono-font) !important;
-    font-size: 0.65rem !important;
+    font-family: var(--mono) !important;
+    font-size: 0.63rem !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     white-space: nowrap !important;
-    color: var(--text-secondary) !important;
+    color: var(--text-muted) !important;
 }
-[data-testid="stMetricDelta"] svg { display: none; }
-[data-testid="stMetricDelta"] {
-    font-family: var(--mono-font) !important;
-    font-size: 0.72rem !important;
-}
+[data-testid="stMetricDelta"] svg { display: none !important; }
+[data-testid="stMetricDelta"] { font-family: var(--mono) !important; font-size: 0.70rem !important; }
 
-/* ══════════════════════════════════════════════════════════════════
-   DATAFRAME
-   ══════════════════════════════════════════════════════════════════ */
-[data-testid="stDataFrame"] * { font-family: var(--mono-font) !important; font-size: 0.80rem !important; }
+/* ── DataFrame ──────────────────────────────────────────────────── */
+[data-testid="stDataFrame"] * { font-family: var(--mono) !important; font-size: 0.80rem !important; }
 
-/* ══════════════════════════════════════════════════════════════════
-   PROGRESS BAR — isolated from HTML pollution
-   Give it guaranteed vertical space so it never overlaps
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Progress Bar — owns its vertical space, no HTML above/below ── */
 [data-testid="stProgressBar"] {
-    margin: 8px 0 14px !important;
     display: block !important;
+    margin: 10px 0 16px !important;
+    clear: both !important;
 }
 [data-testid="stProgressBar"] > div {
     background: var(--bg-overlay) !important;
     border-radius: 4px !important;
     height: 6px !important;
+    overflow: hidden !important;
 }
 [data-testid="stProgressBar"] > div > div {
-    background: var(--accent-blue) !important;
+    background: var(--accent) !important;
     border-radius: 4px !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   ALERT BOXES  (info / success / warning / error)
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Alert Boxes ────────────────────────────────────────────────── */
 [data-testid="stAlert"] {
-    background: var(--bg-surface) !important;
-    border-radius: 5px !important;
-    font-family: var(--mono-font) !important;
+    background: var(--bg-card) !important;
+    border-radius: 6px !important;
+    font-family: var(--mono) !important;
     font-size: 0.84rem !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   BUTTONS
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Buttons ────────────────────────────────────────────────────── */
 [data-testid="stButton"] button {
-    font-family: var(--mono-font) !important;
-    font-size: 0.80rem !important;
+    font-family: var(--mono) !important;
+    font-size: 0.79rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.04em !important;
-    border-radius: 4px !important;
-    border: 1px solid var(--border-muted) !important;
-    background: var(--bg-surface) !important;
+    border-radius: 5px !important;
+    border: 1px solid var(--border-strong) !important;
+    background: var(--bg-card) !important;
     color: var(--text-primary) !important;
-    transition: border-color 0.12s, background 0.12s;
+    transition: border-color 0.12s ease, background 0.12s ease;
 }
 [data-testid="stButton"] button:hover {
-    border-color: var(--accent-blue) !important;
-    background: var(--bg-overlay) !important;
+    border-color: var(--accent) !important;
+    background: var(--bg-subtle) !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   EXPANDERS
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Expanders ──────────────────────────────────────────────────── */
 [data-testid="stExpander"] {
-    background: var(--bg-surface) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 5px !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
 }
 [data-testid="stExpander"] summary {
-    font-family: var(--mono-font) !important;
+    font-family: var(--mono) !important;
     font-size: 0.78rem !important;
     color: var(--text-secondary) !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   SIDEBAR LABELS / WIDGETS
-   ══════════════════════════════════════════════════════════════════ */
+/* ── Sidebar widget labels ──────────────────────────────────────── */
 [data-testid="stSelectbox"] label,
 [data-testid="stRadio"] label,
 [data-testid="stTextInput"] label,
 [data-testid="stSlider"] label {
-    font-family: var(--mono-font) !important;
-    font-size: 0.72rem !important;
+    font-family: var(--mono) !important;
+    font-size: 0.70rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.07em !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     color: var(--text-secondary) !important;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   CHAT  — minimal bubbles, light theme
-   ══════════════════════════════════════════════════════════════════ */
-[data-testid="stChatMessage"] {
-    padding: 4px 0 !important;
-}
+/* ── Chat bubbles ───────────────────────────────────────────────── */
+[data-testid="stChatMessage"] { padding: 4px 0 !important; }
 [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
-    font-family: var(--mono-font) !important;
-    font-size: 0.86rem !important;
+    font-family: var(--mono) !important;
+    font-size: 0.85rem !important;
     line-height: 1.65 !important;
     color: var(--text-primary) !important;
-}
-
-/* ══════════════════════════════════════════════════════════════════
-   MOS LABEL (legacy class, keep for safety)
-   ══════════════════════════════════════════════════════════════════ */
-.mos-label {
-    font-family: var(--mono-font);
-    font-size: 0.74rem;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -774,46 +704,22 @@ _I18N = {
 # 侧边栏（语言切换必须最先渲染）
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    # ── 语言切换（最顶部）──────────────────────────────────────────
+    # Language toggle — always first so T is available everywhere below
     lang = st.radio(
-        "🌐 Language / 语言",
+        "Language / 语言",
         options=["简体中文", "English"],
         horizontal=True,
         key="lang",
     )
-    T = _I18N[lang]             # 全局文本引用
-    lang_code = "en" if lang == "English" else "zh"   # 传给 LLM
+    T         = _I18N[lang]
+    lang_code = "en" if lang == "English" else "zh"
 
-    # ── Sidebar 品牌 Logo ──────────────────────────────────────────
-    st.markdown(
-        "<div style='"
-        "font-family:var(--mono-font,monospace);"
-        "padding:4px 0 12px;"
-        "border-bottom:1px solid var(--border-subtle,#e1e4e6);"
-        "margin-bottom:16px;"
-        "'>"
-        "<div style='"
-        "font-size:0.72rem;font-weight:700;letter-spacing:0.14em;"
-        "text-transform:uppercase;color:var(--text-muted,#8c959f);"
-        "margin-bottom:5px;'"
-        ">Value Intelligence Platform</div>"
-        "<div style='"
-        "font-size:1.05rem;font-weight:700;color:var(--text-primary,#1b1f23);"
-        "line-height:1.35;letter-spacing:-0.01em;'"
-        ">问巴菲特与达利欧</div>"
-        "<div style='"
-        "font-size:0.78rem;font-weight:500;color:var(--text-secondary,#57606a);"
-        "letter-spacing:0.02em;margin-top:1px;'"
-        ">Ask Buffett &amp; Dalio</div>"
-        "</div>",
-        unsafe_allow_html=True,
-    )
     st.divider()
 
     ticker_input = st.text_input(
         T["ticker_label"],
         value="AAPL",
-        placeholder="e.g. AAPL, MSFT, NVDA, APP",
+        placeholder="e.g. AAPL, MSFT, NVDA",
         help=T["ticker_help"],
     ).strip().upper()
 
@@ -1074,9 +980,9 @@ def _delta_color(v, threshold=0):
 
 def _kpi(label: str, value: str, col=None):
     """
-    单行不折行关键数字卡片 — 投行等宽终端风格。
-    用纯 HTML div 渲染，CSS 类在全局 <style> 中定义，无内联 layout 属性。
-    col: 如果传入 st.columns 中的某个 col 对象则在那一列中渲染。
+    KPI card: label (small-caps) + value (mono bold, nowrap).
+    Renders into `col` if given, otherwise into current st context.
+    No inline sizing — all layout driven by .kpi-box CSS class.
     """
     html = (
         '<div class="kpi-box">'
@@ -1084,17 +990,16 @@ def _kpi(label: str, value: str, col=None):
         f'<span class="kpi-value">{value}</span>'
         '</div>'
     )
-    target = col if col is not None else st
-    target.markdown(html, unsafe_allow_html=True)
+    (col if col is not None else st).markdown(html, unsafe_allow_html=True)
 
 
 def _price_row(market_price: str, intrinsic_value: str,
                price_label: str, iv_label: str):
     """
-    安全边际画布：两个价格卡片横排。
-    使用 st.columns([1,1]) 而非 Flexbox HTML，彻底消除条纹错位。
+    MoS canvas price pair — two equal columns via st.columns.
+    No HTML flexbox; avoids stripe-overlap with st.progress.
     """
-    ca, cb = st.columns([1, 1], gap="small")
+    ca, cb = st.columns(2, gap="small")
     ca.markdown(
         '<div class="price-card">'
         f'<span class="price-card-label">{price_label}</span>'
@@ -1165,7 +1070,7 @@ def render_company_card(info: dict, ticker: str, T: dict):
     _website_html = (
         f"<span>🌐 <b>{T['website']}</b>: "
         f"<a href='{website}' target='_blank' "
-        f"style='color:var(--accent-blue);text-decoration:none;'>"
+        f"style='color:var(--accent);text-decoration:none;'>"
         f"{website.replace('https://','').rstrip('/')}</a></span>"
         if website else ""
     )
@@ -1179,17 +1084,17 @@ def render_company_card(info: dict, ticker: str, T: dict):
     </div>
     <div style="text-align:right;flex-shrink:0;">
       <div class="price-big">{price_str}</div>
-      <div style="font-family:var(--mono-font);font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
         {T['market_cap']}: {mcap_str}
       </div>
-      <div style="font-family:var(--mono-font);font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">
         52W: {wk52_str}
       </div>
     </div>
   </div>
-  <hr style="border-color:var(--border-subtle);margin:14px 0 10px;">
+  <hr style="border-color:var(--border);margin:14px 0 10px;">
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;
-              font-family:var(--mono-font);font-size:0.75rem;color:var(--text-secondary);">
+              font-family:var(--mono);font-size:0.75rem;color:var(--text-secondary);">
     <span>📅 {T['ipo_date']}: <b style="color:var(--text-primary);">{ipo_str}</b></span>
     <span>👥 {T['employees']}: <b style="color:var(--text-primary);">{emp_str}</b></span>
     {_website_html}
@@ -1201,7 +1106,7 @@ def render_company_card(info: dict, ticker: str, T: dict):
     if summary:
         with st.expander(T["summary_expand"], expanded=False):
             st.markdown(
-                f"<div style='font-family:var(--mono-font);font-size:0.84rem;"
+                f"<div style='font-family:var(--mono);font-size:0.84rem;"
                 f"color:var(--text-secondary);line-height:1.7;'>{summary}</div>",
                 unsafe_allow_html=True,
             )
@@ -1213,34 +1118,41 @@ def render_company_card(info: dict, ticker: str, T: dict):
 _mode_tag  = T["bt_mode_tag"]  if is_backtest else T["live_mode_tag"]
 _mode_meta = (f"{T['snapshot_label']}: {backtest_year}"
               if is_backtest else f"{T['today_label']}: {date.today().isoformat()}")
+
+# ── 全局大标题（主面板最顶部，宽度充足，不折行）─────────────────────
 st.markdown(
-    # ── 主标题区块 ──
-    "<div style='font-family:var(--mono-font,monospace);margin-bottom:20px;"
-    "padding-bottom:16px;border-bottom:1px solid var(--border-subtle,#e1e4e6);'>"
-
-    # 上方：中英品牌名
-    "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"
-    "margin-bottom:6px;'>"
-    "<span style='font-size:1.5rem;font-weight:700;color:var(--text-primary,#1b1f23);"
-    "letter-spacing:-0.02em;line-height:1.2;'>问巴菲特与达利欧</span>"
-    "<span style='font-size:0.95rem;font-weight:500;color:var(--text-secondary,#57606a);"
-    "letter-spacing:0.01em;'>Ask Buffett &amp; Dalio</span>"
-    "</div>"
-
-    # 下方：股票代码 + 模式标签
-    f"<div style='display:flex;align-items:center;gap:12px;flex-wrap:wrap;'>"
-    f"<span style='font-size:1.05rem;font-weight:700;color:var(--accent-blue,#0969da);"
-    f"letter-spacing:0.02em;'>{ticker_input or '—'}</span>"
-    f"<span style='font-size:0.65rem;font-weight:600;letter-spacing:0.12em;"
-    f"text-transform:uppercase;color:var(--text-muted,#8c959f);"
-    f"border:1px solid var(--border-subtle,#e1e4e6);border-radius:3px;"
-    f"padding:2px 8px;white-space:nowrap;'>{_mode_tag}</span>"
-    f"<span style='font-size:0.72rem;color:var(--text-muted,#8c959f);'>{_mode_meta}</span>"
+    "<div style='"
+    "font-family:'JetBrains Mono','Fira Code',monospace;"
+    "margin-bottom:6px;"
+    "'>"
+    # 品牌行
+    "<h1 style='"
+    "margin:0 0 4px;padding:0;"
+    "font-size:1.6rem;font-weight:700;"
+    "color:#1b1f23;letter-spacing:-0.02em;line-height:1.25;"
+    "white-space:nowrap;"  # 主面板够宽，永不折行
+    "'>📊 问巴菲特与达利欧"
+    "<span style='font-size:1.0rem;font-weight:500;color:#57606a;"
+    "margin-left:12px;letter-spacing:0;'>"
+    "Ask Buffett &amp; Dalio</span>"
+    "</h1>"
+    # 副信息行：股票代码 · 模式 · 日期
+    f"<div style='"
+    f"font-size:0.75rem;color:#8c959f;"
+    f"letter-spacing:0.04em;margin-top:2px;"
+    f"'>"
+    f"<span style='font-weight:700;color:#0550ae;"
+    f"font-size:0.88rem;margin-right:10px;'>{ticker_input or '—'}</span>"
+    f"<span style='background:#f3f4f6;border:1px solid #e1e4e8;"
+    f"border-radius:4px;padding:1px 8px;font-size:0.62rem;"
+    f"font-weight:600;letter-spacing:0.10em;text-transform:uppercase;"
+    f"color:#57606a;margin-right:8px;'>{_mode_tag}</span>"
+    f"<span>{_mode_meta}</span>"
     f"</div>"
-
     "</div>",
     unsafe_allow_html=True,
 )
+st.divider()
 
 # ── 等待按钮 ─────────────────────────────────────────────────────
 if not run_btn:
@@ -1363,13 +1275,13 @@ if not is_backtest:
                 # MoS 标签行 — 用 st.columns 原生布局，不污染 st.progress 上下文
                 _ml, _mr = st.columns([2, 1], gap="small")
                 _ml.markdown(
-                    f'<span style="font-family:var(--mono-font);'
+                    f'<span style="font-family:var(--mono);'
                     f'font-size:0.74rem;color:var(--text-secondary);">'
                     f'{T["mos_progress_lbl"]}</span>',
                     unsafe_allow_html=True,
                 )
                 _mr.markdown(
-                    f'<span style="font-family:var(--mono-font);font-weight:700;'
+                    f'<span style="font-family:var(--mono);font-weight:700;'
                     f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
                     f'{_fmt_pct(mos)}</span>',
                     unsafe_allow_html=True,
@@ -1511,7 +1423,7 @@ else:
     decision = bt_result.get("decision", "HOLD")
     st.markdown(
         f"<div style='text-align:center;margin:16px 0 24px;"
-        f"font-family:var(--mono-font);'>"
+        f"font-family:var(--mono);'>"
         f"<div style='font-size:0.70rem;letter-spacing:0.12em;text-transform:uppercase;"
         f"color:var(--text-secondary);margin-bottom:10px;'>{T['ai_decision']}</div>"
         f"{_decision_badge(decision)}</div>",
@@ -1576,13 +1488,13 @@ else:
             mos_color = "#2da44e" if mos_h >= 0 else "#cf222e"
             _ml2, _mr2 = st.columns([2, 1], gap="small")
             _ml2.markdown(
-                f'<span style="font-family:var(--mono-font);'
+                f'<span style="font-family:var(--mono);'
                 f'font-size:0.74rem;color:var(--text-secondary);">'
                 f'{T["mos_progress_lbl"]}</span>',
                 unsafe_allow_html=True,
             )
             _mr2.markdown(
-                f'<span style="font-family:var(--mono-font);font-weight:700;'
+                f'<span style="font-family:var(--mono);font-weight:700;'
                 f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
                 f'{_fmt_pct(mos_h)}</span>',
                 unsafe_allow_html=True,
@@ -1614,11 +1526,11 @@ else:
             sign  = "+" if alpha >= 0 else ""
             label = (T["outperform"] if alpha > 5
                      else (T["inline"] if alpha > -5 else T["underperform"]))
-            a_color = ("var(--accent-green)" if alpha > 5
-                       else ("var(--accent-yellow)" if alpha > -5 else "var(--accent-red)"))
+            a_color = ("var(--signal-bull)" if alpha > 5
+                       else ("var(--signal-hold)" if alpha > -5 else "var(--signal-bear)"))
             st.markdown(
                 f"<div style='text-align:center;margin-top:12px;"
-                f"font-family:var(--mono-font);'>"
+                f"font-family:var(--mono);'>"
                 f"<div style='font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;"
                 f"color:var(--text-secondary);margin-bottom:4px;'>Alpha vs SPY</div>"
                 f"<div style='font-size:1.3rem;font-weight:700;color:{a_color};"

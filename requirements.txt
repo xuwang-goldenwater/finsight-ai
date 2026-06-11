@@ -1,0 +1,11 @@
+# 问巴菲特与达利欧 | Ask Buffett & Dalio
+# Core dependencies
+streamlit>=1.35
+yfinance>=0.2.50
+pandas>=2.0
+numpy>=1.24
+openai>=1.0
+python-dotenv>=1.0
+
+# Optional — bypasses Yahoo Finance rate limits (strongly recommended)
+curl_cffi>=0.6
