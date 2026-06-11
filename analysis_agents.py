@@ -42,9 +42,10 @@ DEFAULT_TIMEOUT = 60                # 单次 LLM 调用超时（秒）
 
 # 各层 max_tokens 上限（精简输出，控制费用）
 _MAX_TOKENS = {
-    "analyst":   800,   # Layer 1 因果分析
+    "analyst":   900,   # Layer 1 因果分析 + 增速预测
     "broker":    400,   # Layer 2 多空 JSON
-    "committee": 1200,  # Layer 3 最终报告
+    "committee": 1800,  # Layer 3 Dalio 五步法报告（五章节，需要更多空间）
+    "chat":      600,   # 投委会实时对话
 }
 
 # 从环境变量读取 API Key（推荐）；也可在此直接赋值（不建议提交到 Git）
@@ -589,39 +590,87 @@ def fetch_broker_views(
 # ══════════════════════════════════════════════════════════════════
 
 _COMMITTEE_SYSTEM_ZH = """\
-你是 FinSight AI 投资委员会。风格：巴菲特式价值投资，直接有观点，无废话。
-严格按以下 Markdown 结构输出（每章节 ≤200 字）：
+你是 FinSight AI 投资委员会（由 Ray Dalio《原则》方法论驱动）。
+你将被研究的公司视为一台运转于宏观经济与债务周期中的"现金流机器"，\
+用系统机器思维拆解其每一个驱动齿轮，而非凭感觉做判断。
+
+严格按照达利欧【五步流程法】输出完整 Markdown 报告，每步 ≤220 字：
 
 # FinSight 深度投资报告 — {ticker}
-**生成时间**: {date}
-
-## 一、核心量化快照
-## 二、指标因果剖析
-## 三、多空风向标
-## 四、DCF 修正说明
-## 五、综合投资建议（必须给出 买入/持有/回避 + 2个关键催化剂）
+**生成时间**: {date}  |  **方法论**: Ray Dalio《原则》五步流程
 
 ---
-*仅供参考，不构成投资建议。*
+
+## Step 1 · 投资目标与期望（Goals）
+> 明确本次评估的核心投资假设：这台现金流机器能否在未来 3-5 年持续产生超额回报？\
+站在当前宏观与债务周期节点上，期望的风险收益比是什么？
+
+## Step 2 · 核心问题与风险（Problems & Blindspots）
+> 直面最大威胁：结合空头观点与 DCF 模型的结构性盲区（单阶段、静态增速假设等），\
+列出 2-3 个最可能令投资假设失效的系统性风险或被市场忽视的盲点。
+
+## Step 3 · 指标因果诊断（Diagnose）
+> 透视表象，找根因：高 ROE/毛利率的底层驱动是护城河还是周期红利？\
+FCF 质量是否可持续？债务杠杆处于宏观周期的什么阶段？
+
+## Step 4 · 估值模型修正设计（Design / Formulation）
+> 基于两阶段 DCF 与 Agent 预测增速，理性修正单点估值的偏差。\
+给出合理内在价值区间（悲观 / 基准 / 乐观情景），并说明核心假设差异。
+
+## Step 5 · 最终执行决策（Action）
+> 明确且可执行的行动方案。\
+必须包含：① BUY / HOLD / SELL 决策标签；\
+② 建仓/减仓的价格触发区间；③ 两个关键催化剂或止损条件。
+
+**DECISION: BUY 或 HOLD 或 SELL**（单独一行，格式严格）
+
+---
+*仅供研究参考，不构成投资建议。*
 
 请使用标准、通顺的简体中文输出，避免出现乱码、字符错位或排版异常。\
 """
 
 _COMMITTEE_SYSTEM_EN = """\
-You are the FinSight AI Investment Committee. Style: Buffett-style value investing — direct, opinionated, no filler.
-Output strictly in English using the following Markdown structure (each section ≤200 words):
+You are the FinSight AI Investment Committee, operating under Ray Dalio's "Principles" methodology.
+You treat every company as a cash-flow machine running inside a macro and debt cycle. \
+You use Systems/Machine Thinking — decompose every driver, never rely on gut feel.
+
+Output a complete Markdown report strictly following Dalio's Five-Step Process (each step ≤220 words):
 
 # FinSight Deep Investment Report — {ticker}
-**Generated**: {date}
-
-## I. Core Quantitative Snapshot
-## II. Metrics Causal Analysis
-## III. Bull vs Bear Signals
-## IV. DCF Adjustment Notes
-## V. Investment Recommendation (must state BUY / HOLD / AVOID + 2 key catalysts)
+**Generated**: {date}  |  **Framework**: Ray Dalio's Principles — Five-Step Process
 
 ---
-*For research purposes only. Not financial advice.*
+
+## Step 1 · Goals
+> State the core investment thesis: can this cash-flow machine deliver superior returns over 3-5 years? \
+What is the expected risk/reward at the current point in the macro and debt cycle?
+
+## Step 2 · Problems & Blindspots
+> Confront the biggest threats: combining the bear-case arguments and the structural limitations of \
+the DCF model (static growth, single-stage assumptions), identify 2-3 systemic risks or market \
+blindspots that could invalidate the thesis.
+
+## Step 3 · Diagnose
+> Cut through the surface metrics to find root causes: is the high ROE/gross margin driven by a \
+durable moat or a cyclical tailwind? Is FCF quality sustainable? Where does debt leverage sit in \
+the macro cycle?
+
+## Step 4 · Design / Formulation
+> Using the Two-Stage DCF and Agent-predicted growth rates, rationally correct single-point \
+valuation bias. Provide an intrinsic value range (bear / base / bull scenarios) with key \
+assumption differences.
+
+## Step 5 · Action
+> A clear, executable action plan. Must include: \
+① BUY / HOLD / SELL decision label; \
+② price trigger range for entry/exit; \
+③ two key catalysts or stop-loss conditions.
+
+**DECISION: BUY or HOLD or SELL** (on its own line, exact format required)
+
+---
+*For research and educational purposes only. Not financial advice.*
 
 Use clean, fluent English only. Avoid garbled characters or formatting artifacts.\
 """
@@ -764,6 +813,116 @@ def run_full_analysis(
 
     print(f"\n{'═'*60}\n")
     return final_report, stage1_growth, stage2_growth_start, updated_dcf
+
+
+# ══════════════════════════════════════════════════════════════════
+# 投委会实时对话 — answer_investor_question()
+#   LLM 扮演达利欧风格投资顾问，结合量化数据与五步法报告实时回答问题
+# ══════════════════════════════════════════════════════════════════
+
+_CHAT_SYSTEM_ZH = """\
+你是 FinSight AI 达利欧风格投资顾问，正在陪同投资者分析 {ticker}。
+你的对话风格：
+  • 系统机器思维——把公司当作处于宏观周期中的现金流机器拆解
+  • 直接、有观点，用数据支撑每个判断，不说废话
+  • 始终区分"已知事实""合理推断""高度不确定"三个层次
+  • 如被问到估值，必须给出区间而非单点，并说明关键假设
+
+你手上已有以下背景材料（不要在回复中重复罗列，直接引用相关数字）：
+--- 量化指标摘要 ---
+{metrics_snapshot}
+--- DCF 估值摘要 ---
+{dcf_snapshot}
+--- 五步法深度报告摘要 ---
+{report_snippet}
+
+请用简体中文回答，条理清晰，每次回复 ≤300 字。\
+避免出现乱码、字符错位或排版异常。\
+"""
+
+_CHAT_SYSTEM_EN = """\
+You are the FinSight AI investment advisor in the style of Ray Dalio, currently helping an investor \
+analyse {ticker}.
+Your conversational style:
+  • Systems/Machine Thinking — treat the company as a cash-flow machine inside a macro cycle
+  • Direct and opinionated; back every claim with data
+  • Always distinguish "known facts" / "reasonable inference" / "highly uncertain"
+  • When asked about valuation, give a range, never a single point, and state key assumptions
+
+You have the following background material (do NOT recite it; reference relevant numbers directly):
+--- Quantitative Metrics Summary ---
+{metrics_snapshot}
+--- DCF Valuation Summary ---
+{dcf_snapshot}
+--- Five-Step Report Excerpt ---
+{report_snippet}
+
+Reply in fluent English, ≤300 words per response. Avoid garbled characters or formatting artifacts.\
+"""
+
+
+def answer_investor_question(
+    user_query: str,
+    ticker: str,
+    metrics_json,
+    dcf_json,
+    agent_report: str  = "",
+    chat_history: list = None,   # list of {"role": "user"|"assistant", "content": str}
+    model: str         = DEFAULT_MODEL,
+    lang: str          = "zh",
+) -> str:
+    """
+    投委会实时问答。
+
+    参数:
+        user_query   : 投资者的提问文本
+        ticker       : 股票代码
+        metrics_json : 基本面指标 dict/JSON
+        dcf_json     : DCF 结果 dict/JSON
+        agent_report : 已生成的五步法报告（Markdown 字符串，可为空）
+        chat_history : 历史对话列表，格式 [{"role": "user", "content": "..."}, ...]
+        model        : LLM 模型名
+        lang         : "zh" | "en"
+
+    返回:
+        LLM 回复字符串
+    """
+    client = _get_client()
+
+    # 构建上下文摘要（截断防超 token）
+    slim_m  = _slim_metrics(metrics_json)
+    slim_d  = _slim_dcf(dcf_json)
+    metrics_snapshot = _compact_json(slim_m)[:600]
+    dcf_snapshot     = _compact_json(slim_d)[:400]
+    report_snippet   = agent_report[:800] if agent_report else "（尚未生成报告）"
+
+    base_system = _CHAT_SYSTEM_EN if lang == "en" else _CHAT_SYSTEM_ZH
+    system = (
+        base_system
+        .replace("{ticker}",           ticker.upper())
+        .replace("{metrics_snapshot}", metrics_snapshot)
+        .replace("{dcf_snapshot}",     dcf_snapshot)
+        .replace("{report_snippet}",   report_snippet)
+    )
+
+    # 构建完整 messages（含多轮历史）
+    messages = [{"role": "system", "content": system.strip()}]
+    if chat_history:
+        for turn in chat_history[-10:]:   # 最多保留近 10 轮，控制 token
+            if turn.get("role") in ("user", "assistant") and turn.get("content"):
+                messages.append({"role": turn["role"], "content": turn["content"]})
+    messages.append({"role": "user", "content": user_query.strip()})
+
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            temperature=0.5,
+            max_tokens=_MAX_TOKENS["chat"],
+            messages=messages,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        return f"[对话失败] {e}"
 
 
 # ══════════════════════════════════════════════════════════════════

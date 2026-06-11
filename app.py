@@ -292,6 +292,13 @@ _I18N = {
         "outperform":        "跑赢 vs SPY",
         "inline":            "持平 vs SPY",
         "underperform":      "跑输 vs SPY",
+        # Interactive Chat
+        "chat_title":        "💬 与投委会实时对话（达利欧风格）",
+        "chat_subtitle":     "基于当前量化数据与五步法报告，向 AI 投资顾问提问",
+        "chat_placeholder":  "例如：这个估值区间合理吗？最大的下行风险是什么？",
+        "chat_thinking":     "🤔 投委会分析中…",
+        "chat_no_data":      "请先在上方点击【开始分析】生成报告，再开启对话。",
+        "chat_welcome":      "你好！我是 FinSight 达利欧风格投资顾问。\n\n我已读取 **{ticker}** 的所有量化指标与五步法评估报告。请直接提问——估值合理性、风险识别、宏观周期定位，或任何你关心的投资问题。",
     },
     "English": {
         "lang_label":        "Language / 语言",
@@ -392,6 +399,13 @@ _I18N = {
         "outperform":        "Outperformed SPY",
         "inline":            "In-line with SPY",
         "underperform":      "Underperformed SPY",
+        # Interactive Chat
+        "chat_title":        "💬 Chat with the Investment Committee (Dalio Style)",
+        "chat_subtitle":     "Ask the AI advisor anything based on the current data & Five-Step report",
+        "chat_placeholder":  "e.g. Is this valuation reasonable? What's the biggest downside risk?",
+        "chat_thinking":     "🤔 Committee analysing…",
+        "chat_no_data":      "Please run an analysis above first, then start chatting.",
+        "chat_welcome":      "Hello! I'm your FinSight Dalio-style investment advisor.\n\nI've reviewed all the quantitative metrics and the Five-Step assessment for **{ticker}**. Ask me anything — valuation range, risk identification, macro cycle positioning, or any investment question you have.",
     },
 }
 
@@ -608,6 +622,30 @@ def load_backtest(ticker: str, backtest_year: int):
         return bt.run_backtest(ticker, backtest_year=backtest_year, save_report=False), None
     except Exception as e:
         return None, str(e)
+
+
+# NOTE: chat replies must NOT be cached globally — each turn is unique.
+# We call analysis_agents.answer_investor_question() directly in the UI loop.
+def _call_chat_answer(user_query: str, ticker: str,
+                      metrics_json: str, dcf_json: str,
+                      agent_report: str, history: list,
+                      lang_code: str) -> str:
+    """薄封装：从 backend 调用 answer_investor_question，隔离 import 错误。"""
+    _, aa, _, err = _import_backends()
+    if err:
+        return f"[Backend 加载失败] {err}"
+    try:
+        return aa.answer_investor_question(
+            user_query   = user_query,
+            ticker       = ticker,
+            metrics_json = json.loads(metrics_json) if isinstance(metrics_json, str) else metrics_json,
+            dcf_json     = json.loads(dcf_json)     if isinstance(dcf_json, str)     else dcf_json,
+            agent_report = agent_report,
+            chat_history = history,
+            lang         = lang_code,
+        )
+    except Exception as e:
+        return f"[对话异常] {e}"
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1184,7 +1222,108 @@ else:
 
 
 # ══════════════════════════════════════════════════════════════════
-# 通用底部
+# 通用底部：【与投委会实时对话】 Interactive Chat
 # ══════════════════════════════════════════════════════════════════
+st.divider()
+st.markdown(f"### {T['chat_title']}")
+st.caption(T["chat_subtitle"])
+
+# ── session_state 初始化 ──────────────────────────────────────────
+if "chat_messages" not in st.session_state:
+    st.session_state["chat_messages"] = []   # list of {"role", "content"}
+if "chat_ticker" not in st.session_state:
+    st.session_state["chat_ticker"] = ""
+
+# 当 ticker 切换时，清空对话历史并打招呼
+_chat_ticker_now = st.session_state.get("_last_ticker", "")
+if _chat_ticker_now and _chat_ticker_now != st.session_state.get("chat_ticker", ""):
+    st.session_state["chat_messages"] = []
+    st.session_state["chat_ticker"]   = _chat_ticker_now
+    # 写入欢迎语（assistant 角色）
+    welcome = T["chat_welcome"].replace("{ticker}", _chat_ticker_now)
+    st.session_state["chat_messages"].append(
+        {"role": "assistant", "content": welcome}
+    )
+
+# ── 判断是否已有分析数据（只有跑了分析才有意义开聊）─────────────────
+_has_analysis = bool(
+    run_btn
+    and ticker_input
+    and not st.session_state.get("_stage1_growth") is None
+    or (run_btn and ticker_input and st.session_state.get("_updated_dcf"))
+)
+
+# 即使 Agent 还未跑完，只要有 ticker 数据就允许对话
+_chat_ready = run_btn and ticker_input
+
+if not _chat_ready:
+    st.info(T["chat_no_data"], icon="💡")
+else:
+    # ── 渲染历史消息 ──────────────────────────────────────────────
+    for msg in st.session_state["chat_messages"]:
+        with st.chat_message(msg["role"],
+                             avatar="🤖" if msg["role"] == "assistant" else "🧑‍💼"):
+            st.markdown(msg["content"])
+
+    # ── 输入框 ────────────────────────────────────────────────────
+    if user_input := st.chat_input(T["chat_placeholder"]):
+        # 立即展示用户消息
+        st.session_state["chat_messages"].append(
+            {"role": "user", "content": user_input}
+        )
+        with st.chat_message("user", avatar="🧑‍💼"):
+            st.markdown(user_input)
+
+        # 构建上下文（取已有的指标 / DCF / 报告）
+        _m_json_chat = "{}"
+        _d_json_chat = "{}"
+        _report_chat = ""
+        try:
+            if "metrics_df" in dir() and metrics_df is not None and not metrics_df.empty:
+                _m_json_chat = metrics_df.to_json(orient="index")
+        except Exception:
+            pass
+        try:
+            _dcf_src = st.session_state.get("_updated_dcf") or (dcf if "dcf" in dir() else {})
+            _d_json_chat = json.dumps({
+                k: v for k, v in _dcf_src.items()
+                if isinstance(v, (str, int, float, list, dict, type(None)))
+            })
+        except Exception:
+            pass
+        # 从最近一条 assistant 消息中取报告（排除欢迎语）
+        for _m in reversed(st.session_state["chat_messages"]):
+            if _m["role"] == "assistant" and len(_m["content"]) > 200:
+                _report_chat = _m["content"]
+                break
+
+        # 调用 LLM 并流式展示
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner(T["chat_thinking"]):
+                history_for_llm = [
+                    m for m in st.session_state["chat_messages"][:-1]  # 去掉刚加入的 user
+                    if m["role"] in ("user", "assistant")
+                ]
+                reply = _call_chat_answer(
+                    user_query   = user_input,
+                    ticker       = ticker_input,
+                    metrics_json = _m_json_chat,
+                    dcf_json     = _d_json_chat,
+                    agent_report = _report_chat,
+                    history      = history_for_llm,
+                    lang_code    = lang_code,
+                )
+            st.markdown(reply)
+
+        st.session_state["chat_messages"].append(
+            {"role": "assistant", "content": reply}
+        )
+
+    # ── 清空对话按钮 ──────────────────────────────────────────────
+    if st.session_state["chat_messages"]:
+        if st.button("🗑️  清空对话 / Clear Chat", use_container_width=False):
+            st.session_state["chat_messages"] = []
+            st.rerun()
+
 st.divider()
 st.caption(T["footer"])
