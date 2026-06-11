@@ -55,13 +55,14 @@ st.markdown("""
 
 /* ── 章节小标题 ── */
 .section-title {
-    font-size:0.75rem; font-weight:600; letter-spacing:0.12em;
-    text-transform:uppercase; color:#64748b; margin:12px 0 4px 0;
+    font-size:0.78rem; font-weight:700; letter-spacing:0.10em;
+    text-transform:uppercase; color:#93c5fd; margin:14px 0 6px 0;
+    border-left: 3px solid #3b82f6; padding-left: 8px;
 }
 
 /* ── 关键数字：单行、不折行 ── */
 .kpi-value {
-    font-size: 1.15rem;
+    font-size: 1.2rem;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -70,17 +71,19 @@ st.markdown("""
     line-height: 1.4;
 }
 .kpi-label {
-    font-size: 0.72rem;
-    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #94a3b8;
     white-space: nowrap;
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+    letter-spacing: 0.01em;
 }
 .kpi-box {
     background: #1e2130;
     border: 1px solid #2e3455;
     border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 6px;
+    padding: 11px 14px;
+    margin-bottom: 7px;
 }
 
 /* ── 公司名片 ── */
@@ -133,6 +136,44 @@ st.markdown("""
 .report-body h1 { font-size: 1.1rem !important; font-weight: 700; }
 .report-body h2 { font-size: 1.0rem !important; font-weight: 700; }
 .report-body h3 { font-size: 0.95rem !important; font-weight: 600; }
+
+/* ── 多空观点卡片 ── */
+.bull-card {
+    background: linear-gradient(135deg, #0f2e1a 0%, #14381f 100%);
+    border: 1px solid #16a34a;
+    border-left: 4px solid #4ade80;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+    color: #bbf7d0;
+    line-height: 1.65;
+}
+.bear-card {
+    background: linear-gradient(135deg, #2e0f0f 0%, #381414 100%);
+    border: 1px solid #dc2626;
+    border-left: 4px solid #f87171;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    font-size: 0.88rem;
+    color: #fecaca;
+    line-height: 1.65;
+}
+.signal-badge-bull {
+    display:inline-block; background:#14532d; color:#4ade80;
+    border-radius:5px; padding:2px 10px; font-size:0.72rem;
+    font-weight:700; margin-bottom:10px; letter-spacing:0.05em;
+}
+.signal-badge-bear {
+    display:inline-block; background:#7f1d1d; color:#f87171;
+    border-radius:5px; padding:2px 10px; font-size:0.72rem;
+    font-weight:700; margin-bottom:10px; letter-spacing:0.05em;
+}
+.consensus-bar {
+    background:#1e293b; border:1px solid #334155; border-radius:8px;
+    padding:10px 14px; font-size:0.85rem; color:#94a3b8; margin-bottom:12px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -796,7 +837,7 @@ if not is_backtest:
     # ────────────────────────────────────────────────────────────
     # 双栏：安全边际 + Agent 报告
     # ────────────────────────────────────────────────────────────
-    left_col, right_col = st.columns([1, 1.6], gap="large")
+    left_col, right_col = st.columns([1, 2.8], gap="large")
 
     # ── 左栏：安全边际画布 ────────────────────────────────────────
     with left_col:
@@ -862,17 +903,34 @@ if not is_backtest:
             if err_broker:
                 st.warning(f"⚠️ {err_broker}", icon="🔌")
             if broker_views and broker_views.get("bullish"):
-                st.markdown(f"**{T['consensus_label']}:** `{broker_views.get('consensus','N/A')}`")
-                st.divider()
-                for i, pt in enumerate(broker_views.get("bullish", []), 1):
-                    st.markdown(f"**{i}.** {pt}")
+                consensus = broker_views.get("consensus", "N/A")
+                st.markdown(
+                    f'<div class="consensus-bar">📊 <b>{T["consensus_label"]}:</b> {consensus}</div>',
+                    unsafe_allow_html=True,
+                )
+                st.markdown(
+                    '<div class="signal-badge-bull">🟢 BULL CASE · 多方论据</div>',
+                    unsafe_allow_html=True,
+                )
+                for pt in broker_views.get("bullish", []):
+                    st.markdown(
+                        f'<div class="bull-card">✅ &nbsp;{pt}</div>',
+                        unsafe_allow_html=True,
+                    )
             elif not err_broker:
                 st.info(T["no_bull"])
 
         with tab_bear:
             if broker_views and broker_views.get("bearish"):
-                for i, pt in enumerate(broker_views.get("bearish", []), 1):
-                    st.markdown(f"**{i}.** {pt}")
+                st.markdown(
+                    '<div class="signal-badge-bear">🔴 BEAR CASE · 空方论据</div>',
+                    unsafe_allow_html=True,
+                )
+                for pt in broker_views.get("bearish", []):
+                    st.markdown(
+                        f'<div class="bear-card">⚠️ &nbsp;{pt}</div>',
+                        unsafe_allow_html=True,
+                    )
             elif not err_broker:
                 st.info(T["no_bear"])
 
@@ -968,7 +1026,7 @@ else:
 
     st.divider()
 
-    left_col, right_col = st.columns([1, 1.6], gap="large")
+    left_col, right_col = st.columns([1, 2.8], gap="large")
 
     with left_col:
         st.markdown(f"### {T['bt_mos']} — {backtest_year}")
