@@ -34,530 +34,505 @@ st.set_page_config(
 st.markdown("""
 <style>
 /* ════════════════════════════════════════════════════════════════════
-   FINSIGHT AI — GLOBAL DESIGN SYSTEM
-   Theme: Investment-Bank Research · Claude Code Terminal Aesthetic
-   Palette: Deep cold darks · Monospace data · Muted signals
+   FINSIGHT AI — DESIGN SYSTEM v3
+   Theme: Light Tech Terminal · Investment-Bank Research
+   Palette: Clean whites · Charcoal type · Muted signal borders
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── Google Fonts: JetBrains Mono ─────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 
-/* ── CSS Custom Properties ────────────────────────────────────── */
 :root {
-    --bg-base:       #0d0f14;
-    --bg-surface:    #161b22;
-    --bg-raised:     #1c2128;
-    --bg-overlay:    #21262d;
-    --border-subtle: #30363d;
-    --border-muted:  #21262d;
-    --text-primary:  #e6edf3;
-    --text-secondary:#8b949e;
-    --text-muted:    #484f58;
-    --accent-blue:   #58a6ff;
-    --accent-green:  #3fb950;
-    --accent-red:    #f85149;
-    --accent-yellow: #d29922;
-    --accent-teal:   #39d353;
-    --mono-font:     'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+    /* Backgrounds */
+    --bg-base:       #f4f5f6;
+    --bg-surface:    #ffffff;
+    --bg-raised:     #f0f2f4;
+    --bg-overlay:    #eaedf0;
+    /* Borders */
+    --border-subtle: #e1e4e6;
+    --border-muted:  #d0d7de;
+    /* Type */
+    --text-primary:  #1b1f23;
+    --text-secondary:#57606a;
+    --text-muted:    #8c959f;
+    /* Signals — used ONLY as thin accent lines, not fills */
+    --accent-blue:   #0969da;
+    --accent-green:  #2da44e;
+    --accent-red:    #cf222e;
+    --accent-yellow: #9a6700;
+    /* Font */
+    --mono-font: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
 }
 
-/* ── App shell background ─────────────────────────────────────── */
-.stApp, [data-testid="stAppViewContainer"] {
+/* ══════════════════════════════════════════════════════════════════
+   APP SHELL — light base
+   ══════════════════════════════════════════════════════════════════ */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"] {
     background-color: var(--bg-base) !important;
 }
 [data-testid="stSidebar"] {
     background-color: var(--bg-surface) !important;
     border-right: 1px solid var(--border-subtle) !important;
 }
+/* Widen the main content area padding slightly */
+[data-testid="stMainBlockContainer"] {
+    padding-top: 1.5rem !important;
+}
 
-/* ── Global typography ────────────────────────────────────────── */
-html, body, [class*="css"] {
+/* ══════════════════════════════════════════════════════════════════
+   GLOBAL TYPOGRAPHY
+   ══════════════════════════════════════════════════════════════════ */
+html, body {
     font-family: var(--mono-font) !important;
-    line-height: 1.6 !important;
     color: var(--text-primary) !important;
+    background-color: var(--bg-base) !important;
     -webkit-font-smoothing: antialiased;
 }
-p, li, .stMarkdown {
-    line-height: 1.6 !important;
-    color: var(--text-primary);
+/* Cascade mono to all Streamlit-generated text nodes */
+p, li, span, div, label, td, th, button,
+.stMarkdown, .stText, .stCaption,
+[class*="css"] {
+    font-family: var(--mono-font) !important;
 }
+p, li { line-height: 1.6 !important; color: var(--text-primary); }
 
-/* ── Headings ─────────────────────────────────────────────────── */
 h1, h2, h3, h4 {
     font-family: var(--mono-font) !important;
-    font-weight: 600 !important;
-    letter-spacing: -0.01em !important;
+    font-weight: 700 !important;
     color: var(--text-primary) !important;
+    letter-spacing: -0.01em !important;
 }
-h1 { font-size: 1.4rem !important; }
-h2 { font-size: 1.15rem !important; }
-h3 { font-size: 1.0rem !important; }
+h1 { font-size: 1.35rem !important; }
+h2 { font-size: 1.10rem !important; }
+h3 { font-size: 0.96rem !important; }
 
-/* ── Dividers ─────────────────────────────────────────────────── */
-hr { border-color: var(--border-subtle) !important; margin: 20px 0 !important; }
+hr { border: none !important; border-top: 1px solid var(--border-subtle) !important; margin: 20px 0 !important; }
 
-/* ── ═══ DECISION BADGES ═══ ─────────────────────────────────── */
-.badge-buy {
+/* ══════════════════════════════════════════════════════════════════
+   DECISION BADGES  (BUY / HOLD / SELL)
+   ══════════════════════════════════════════════════════════════════ */
+.badge-buy, .badge-hold, .badge-sell {
     display: inline-block;
-    background: transparent;
-    color: var(--accent-green);
-    border: 1px solid var(--accent-green);
-    border-radius: 4px;
-    padding: 5px 18px;
     font-family: var(--mono-font);
     font-weight: 700;
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
+    font-size: 1.0rem;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-}
-.badge-hold {
-    display: inline-block;
+    padding: 5px 20px;
+    border-radius: 3px;
+    border-width: 1px;
+    border-style: solid;
     background: transparent;
-    color: var(--accent-yellow);
-    border: 1px solid var(--accent-yellow);
-    border-radius: 4px;
-    padding: 5px 18px;
-    font-family: var(--mono-font);
-    font-weight: 700;
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
 }
-.badge-sell {
-    display: inline-block;
-    background: transparent;
-    color: var(--accent-red);
-    border: 1px solid var(--accent-red);
-    border-radius: 4px;
-    padding: 5px 18px;
-    font-family: var(--mono-font);
-    font-weight: 700;
-    font-size: 1.05rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
+.badge-buy  { color: var(--accent-green);  border-color: var(--accent-green); }
+.badge-hold { color: var(--accent-yellow); border-color: var(--accent-yellow); }
+.badge-sell { color: var(--accent-red);    border-color: var(--accent-red); }
 
-/* ── ═══ SECTION TITLE ═══ ───────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   SECTION TITLE  (small caps label above a group)
+   ══════════════════════════════════════════════════════════════════ */
 .section-title {
     font-family: var(--mono-font);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-secondary);
-    margin: 20px 0 8px 0;
-    padding-left: 10px;
+    padding-left: 8px;
     border-left: 2px solid var(--accent-blue);
+    margin: 18px 0 8px;
+    line-height: 1.4;
 }
 
-/* ── ═══ KPI BOX ═══ ─────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   KPI BOX  — label on top, value below, no fixed widths
+   ══════════════════════════════════════════════════════════════════ */
 .kpi-box {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 12px 16px;
+    border-radius: 5px;
+    padding: 10px 14px;
     margin-bottom: 8px;
+    /* CRITICAL: no overflow:hidden, no fixed height */
 }
 .kpi-label {
     font-family: var(--mono-font);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 500;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    margin-bottom: 4px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    display: block;
 }
 .kpi-value {
     font-family: var(--mono-font);
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    white-space: nowrap;
     color: var(--text-primary);
+    white-space: nowrap;
+    display: block;
     line-height: 1.3;
 }
 
-/* ── ═══ MOS PRICE ROW ═══ ───────────────────────────────────── */
-/* Two price cards side-by-side in MoS canvas — full Flexbox control */
-.price-row {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 12px;
-}
+/* ══════════════════════════════════════════════════════════════════
+   MOS CANVAS — price pair + MoS row
+   Uses native st.columns for grid; CSS only styles the cards.
+   ══════════════════════════════════════════════════════════════════ */
 .price-card {
-    flex: 1;
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 12px 16px;
-    min-width: 0;
+    border-radius: 5px;
+    padding: 12px 14px;
+    /* flex/grid handled by Streamlit columns — no fixed width here */
 }
 .price-card-label {
     font-family: var(--mono-font);
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 500;
-    color: var(--text-secondary);
     letter-spacing: 0.10em;
     text-transform: uppercase;
+    color: var(--text-secondary);
     margin-bottom: 4px;
+    display: block;
     white-space: nowrap;
 }
 .price-card-value {
     font-family: var(--mono-font);
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 700;
-    white-space: nowrap;
-    line-height: 1.2;
     color: var(--text-primary);
+    white-space: nowrap;
+    display: block;
+    line-height: 1.2;
 }
 .price-card-value.intrinsic { color: var(--accent-blue); }
-.mos-pct {
-    font-family: var(--mono-font);
-    font-size: 1.0rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
+
 .mos-row {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 10px;
-    margin-bottom: 10px;
+    margin: 10px 0 4px;
     font-family: var(--mono-font);
     font-size: 0.78rem;
     color: var(--text-secondary);
 }
+.mos-pct {
+    font-family: var(--mono-font);
+    font-size: 1.05rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
 
-/* ── ═══ COMPANY CARD ═══ ────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   COMPANY CARD
+   ══════════════════════════════════════════════════════════════════ */
 .company-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 20px 24px;
+    border-radius: 6px;
+    padding: 18px 22px;
     margin-bottom: 20px;
 }
 .company-name {
     font-family: var(--mono-font);
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 2px 0;
-    letter-spacing: -0.01em;
+    margin: 0 0 2px;
 }
 .company-meta {
     font-family: var(--mono-font);
-    font-size: 0.75rem;
+    font-size: 0.73rem;
     color: var(--text-muted);
-    letter-spacing: 0.02em;
 }
 .company-tag {
     display: inline-block;
     background: var(--bg-overlay);
     color: var(--text-secondary);
     border: 1px solid var(--border-subtle);
-    border-radius: 4px;
-    padding: 1px 8px;
+    border-radius: 3px;
+    padding: 1px 7px;
     font-family: var(--mono-font);
-    font-size: 0.70rem;
+    font-size: 0.68rem;
     letter-spacing: 0.04em;
     margin: 4px 4px 0 0;
 }
 .price-big {
     font-family: var(--mono-font);
-    font-size: 1.5rem;
+    font-size: 1.45rem;
     font-weight: 700;
     color: var(--accent-green);
     white-space: nowrap;
-    letter-spacing: -0.01em;
 }
 
-/* ── ═══ BULL / BEAR CARDS ═══ ──────────────────────────────── */
-/* Muted dark base; only the left border carries the signal color */
+/* ══════════════════════════════════════════════════════════════════
+   BULL / BEAR CARDS  — white base, 3 px left signal border only
+   ══════════════════════════════════════════════════════════════════ */
 .bull-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-left: 2px solid #238636;
-    border-radius: 6px;
-    padding: 12px 16px;
+    border-left: 3px solid var(--accent-green);
+    border-radius: 5px;
+    padding: 11px 15px;
     margin-bottom: 8px;
     font-family: var(--mono-font);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     color: var(--text-primary);
     line-height: 1.6;
 }
 .bear-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-left: 2px solid #da3633;
-    border-radius: 6px;
-    padding: 12px 16px;
+    border-left: 3px solid var(--accent-red);
+    border-radius: 5px;
+    padding: 11px 15px;
     margin-bottom: 8px;
     font-family: var(--mono-font);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     color: var(--text-primary);
     line-height: 1.6;
 }
 
-/* ── ═══ SIGNAL BADGES (Bull / Bear labels) ═══ ─────────────── */
-.signal-badge-bull {
-    display: inline-block;
-    background: transparent;
-    color: #3fb950;
-    border: 1px solid #238636;
-    border-radius: 4px;
-    padding: 2px 10px;
-    font-family: var(--mono-font);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-}
+/* ══════════════════════════════════════════════════════════════════
+   SIGNAL BADGES  (inline pill above bull/bear list)
+   ══════════════════════════════════════════════════════════════════ */
+.signal-badge-bull,
 .signal-badge-bear {
     display: inline-block;
     background: transparent;
-    color: #f85149;
-    border: 1px solid #da3633;
-    border-radius: 4px;
-    padding: 2px 10px;
+    border-radius: 3px;
+    padding: 2px 9px;
     font-family: var(--mono-font);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     margin-bottom: 12px;
+    border-width: 1px;
+    border-style: solid;
 }
+.signal-badge-bull { color: var(--accent-green); border-color: var(--accent-green); }
+.signal-badge-bear { color: var(--accent-red);   border-color: var(--accent-red); }
 
-/* ── ═══ CONSENSUS BAR ═══ ───────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   CONSENSUS BAR
+   ══════════════════════════════════════════════════════════════════ */
 .consensus-bar {
     background: var(--bg-overlay);
     border: 1px solid var(--border-subtle);
-    border-radius: 6px;
-    padding: 10px 14px;
+    border-radius: 5px;
+    padding: 9px 13px;
     font-family: var(--mono-font);
     font-size: 0.80rem;
     color: var(--text-secondary);
     margin-bottom: 14px;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
-/* ── ═══ TWO-STAGE DCF BADGE ═══ ────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   TWO-STAGE DCF BADGE
+   ══════════════════════════════════════════════════════════════════ */
 .two-stage-badge {
+    display: block;
     background: var(--bg-overlay);
     border-left: 2px solid var(--accent-blue);
-    border-radius: 4px;
-    padding: 6px 12px;
+    border-radius: 3px;
+    padding: 5px 10px;
     font-family: var(--mono-font);
-    font-size: 0.70rem;
+    font-size: 0.67rem;
     font-weight: 600;
     color: var(--accent-blue);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.07em;
     margin-bottom: 10px;
 }
 
-/* ── ═══ REPORT BODY ═══ ─────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   REPORT BODY  (Dalio 5-step report rendered via st.markdown)
+   ══════════════════════════════════════════════════════════════════ */
 .report-body {
     font-family: var(--mono-font);
-    font-size: 0.88rem;
+    font-size: 0.87rem;
     line-height: 1.7;
     color: var(--text-primary);
 }
-.report-body h1, .report-body h2, .report-body h3, .report-body h4 {
+.report-body h3, .report-body h4 {
     font-family: var(--mono-font) !important;
     color: var(--text-primary) !important;
-    margin-top: 20px !important;
-    margin-bottom: 8px !important;
+    margin: 18px 0 6px !important;
 }
-.report-body h3 { font-size: 0.92rem !important; font-weight: 700 !important; }
-.report-body h4 { font-size: 0.88rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
-.report-body strong { color: var(--text-primary); }
+.report-body h3 { font-size: 0.90rem !important; font-weight: 700 !important; }
+.report-body h4 { font-size: 0.85rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
 .report-body blockquote {
-    border-left: 2px solid var(--border-subtle);
-    padding-left: 14px;
-    margin: 12px 0;
+    border-left: 2px solid var(--border-muted);
+    padding-left: 12px;
+    margin: 10px 0;
     color: var(--text-secondary);
     font-style: normal;
 }
-.report-body hr { border-color: var(--border-subtle) !important; }
 .report-body code {
     font-family: var(--mono-font);
     background: var(--bg-overlay);
     border: 1px solid var(--border-subtle);
     border-radius: 3px;
-    padding: 1px 5px;
+    padding: 1px 4px;
     font-size: 0.85em;
+    color: var(--text-primary);
 }
+.report-body hr { border-top: 1px solid var(--border-subtle) !important; }
 
-/* ── ═══ TABS ═══ ────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   TABS
+   ══════════════════════════════════════════════════════════════════ */
 [data-testid="stTabs"] [data-baseweb="tab-list"] {
+    background: transparent !important;
     border-bottom: 1px solid var(--border-subtle) !important;
     gap: 0 !important;
 }
 [data-testid="stTabs"] [data-baseweb="tab"] {
     font-family: var(--mono-font) !important;
-    font-size: 0.78rem !important;
+    font-size: 0.77rem !important;
     font-weight: 500 !important;
     color: var(--text-secondary) !important;
     background: transparent !important;
     border-bottom: 2px solid transparent !important;
-    padding: 8px 16px !important;
-    letter-spacing: 0.04em;
-    transition: color 0.15s, border-color 0.15s;
+    padding: 8px 14px !important;
+    letter-spacing: 0.04em !important;
 }
 [data-testid="stTabs"] [aria-selected="true"] {
     color: var(--text-primary) !important;
-    border-bottom: 2px solid var(--accent-blue) !important;
+    border-bottom-color: var(--accent-blue) !important;
     font-weight: 700 !important;
 }
 
-/* ── ═══ STREAMLIT METRIC (KPI fallback) ═══ ────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   ST.METRIC — override to match light theme & mono font
+   ══════════════════════════════════════════════════════════════════ */
 [data-testid="stMetricValue"] {
     font-family: var(--mono-font) !important;
     font-size: 1.05rem !important;
     font-weight: 700 !important;
     white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
     color: var(--text-primary) !important;
 }
 [data-testid="stMetricLabel"] {
     font-family: var(--mono-font) !important;
-    font-size: 0.68rem !important;
-    letter-spacing: 0.06em !important;
+    font-size: 0.65rem !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
     white-space: nowrap !important;
     color: var(--text-secondary) !important;
 }
+[data-testid="stMetricDelta"] svg { display: none; }
 [data-testid="stMetricDelta"] {
     font-family: var(--mono-font) !important;
     font-size: 0.72rem !important;
 }
 
-/* ── ═══ DATAFRAME ═══ ───────────────────────────────────────── */
-[data-testid="stDataFrame"] {
-    font-family: var(--mono-font) !important;
-    font-size: 0.80rem !important;
-}
+/* ══════════════════════════════════════════════════════════════════
+   DATAFRAME
+   ══════════════════════════════════════════════════════════════════ */
+[data-testid="stDataFrame"] * { font-family: var(--mono-font) !important; font-size: 0.80rem !important; }
 
-/* ── ═══ CHAT UI — Claude-style ═══ ────────────────────────── */
-/* Input box */
-[data-testid="stChatInput"] {
-    background: var(--bg-surface) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 8px !important;
-    font-family: var(--mono-font) !important;
-    font-size: 0.88rem !important;
+/* ══════════════════════════════════════════════════════════════════
+   PROGRESS BAR — isolated from HTML pollution
+   Give it guaranteed vertical space so it never overlaps
+   ══════════════════════════════════════════════════════════════════ */
+[data-testid="stProgressBar"] {
+    margin: 8px 0 14px !important;
+    display: block !important;
 }
-[data-testid="stChatInput"]:focus-within {
-    border-color: var(--accent-blue) !important;
-    box-shadow: 0 0 0 2px rgba(88,166,255,0.15) !important;
-}
-/* Message bubbles */
-[data-testid="stChatMessage"] {
-    background: transparent !important;
-    border: none !important;
-    padding: 6px 0 !important;
-}
-/* User bubble */
-[data-testid="stChatMessage"][data-testid*="user"] > div,
-.stChatMessage.user > div {
+[data-testid="stProgressBar"] > div {
     background: var(--bg-overlay) !important;
-    border: 1px solid var(--border-subtle) !important;
-    border-radius: 6px !important;
-    padding: 10px 14px !important;
+    border-radius: 4px !important;
+    height: 6px !important;
 }
-/* Assistant bubble */
-[data-testid="stChatMessage"] > div {
-    background: var(--bg-surface) !important;
-    border: 1px solid var(--border-muted) !important;
-    border-radius: 6px !important;
-    font-family: var(--mono-font) !important;
-    font-size: 0.86rem !important;
-    line-height: 1.65 !important;
-    padding: 10px 14px !important;
-}
-/* Avatar icon area */
-[data-testid="stChatMessage"] > div:first-child {
-    background: transparent !important;
-    border: none !important;
-    padding: 0 !important;
+[data-testid="stProgressBar"] > div > div {
+    background: var(--accent-blue) !important;
+    border-radius: 4px !important;
 }
 
-/* ── ═══ STREAMLIT NATIVE OVERRIDES ═══ ─────────────────────── */
-/* Buttons */
+/* ══════════════════════════════════════════════════════════════════
+   ALERT BOXES  (info / success / warning / error)
+   ══════════════════════════════════════════════════════════════════ */
+[data-testid="stAlert"] {
+    background: var(--bg-surface) !important;
+    border-radius: 5px !important;
+    font-family: var(--mono-font) !important;
+    font-size: 0.84rem !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════════════════ */
 [data-testid="stButton"] button {
     font-family: var(--mono-font) !important;
     font-size: 0.80rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.04em !important;
-    border-radius: 5px !important;
-    border: 1px solid var(--border-subtle) !important;
+    border-radius: 4px !important;
+    border: 1px solid var(--border-muted) !important;
     background: var(--bg-surface) !important;
     color: var(--text-primary) !important;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.12s, background 0.12s;
 }
 [data-testid="stButton"] button:hover {
     border-color: var(--accent-blue) !important;
-    background: var(--bg-raised) !important;
+    background: var(--bg-overlay) !important;
 }
-/* Primary/CTA button (run btn) */
-[data-testid="stButton"] button[kind="primary"],
-.stButton > button[kind="primary"] {
-    background: var(--accent-blue) !important;
-    color: #0d0f14 !important;
-    border-color: var(--accent-blue) !important;
-    font-weight: 700 !important;
-}
-/* Expanders */
+
+/* ══════════════════════════════════════════════════════════════════
+   EXPANDERS
+   ══════════════════════════════════════════════════════════════════ */
 [data-testid="stExpander"] {
     background: var(--bg-surface) !important;
     border: 1px solid var(--border-subtle) !important;
-    border-radius: 6px !important;
+    border-radius: 5px !important;
 }
 [data-testid="stExpander"] summary {
     font-family: var(--mono-font) !important;
-    font-size: 0.80rem !important;
+    font-size: 0.78rem !important;
     color: var(--text-secondary) !important;
 }
-/* Selectbox / Radio */
+
+/* ══════════════════════════════════════════════════════════════════
+   SIDEBAR LABELS / WIDGETS
+   ══════════════════════════════════════════════════════════════════ */
 [data-testid="stSelectbox"] label,
 [data-testid="stRadio"] label,
-[data-testid="stTextInput"] label {
+[data-testid="stTextInput"] label,
+[data-testid="stSlider"] label {
     font-family: var(--mono-font) !important;
-    font-size: 0.75rem !important;
+    font-size: 0.72rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.06em !important;
+    letter-spacing: 0.07em !important;
     text-transform: uppercase !important;
     color: var(--text-secondary) !important;
 }
-/* Sidebar captions & widgets */
-[data-testid="stSidebar"] .stCaption,
-[data-testid="stSidebar"] .stMarkdown {
-    font-family: var(--mono-font) !important;
-    font-size: 0.75rem !important;
-    color: var(--text-secondary) !important;
-}
-/* Progress bar */
-[data-testid="stProgressBar"] > div {
-    background: var(--bg-overlay) !important;
-    border-radius: 3px !important;
-}
-[data-testid="stProgressBar"] > div > div {
-    background: var(--accent-blue) !important;
-    border-radius: 3px !important;
-}
-/* Info / warning / success / error boxes */
-[data-testid="stInfo"]    { background: var(--bg-surface) !important; border-color: var(--accent-blue) !important; }
-[data-testid="stSuccess"] { background: var(--bg-surface) !important; border-color: var(--accent-green) !important; }
-[data-testid="stWarning"] { background: var(--bg-surface) !important; border-color: var(--accent-yellow) !important; }
-[data-testid="stError"]   { background: var(--bg-surface) !important; border-color: var(--accent-red) !important; }
 
-/* ── ═══ MOS LABEL ═══ ───────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════
+   CHAT  — minimal bubbles, light theme
+   ══════════════════════════════════════════════════════════════════ */
+[data-testid="stChatMessage"] {
+    padding: 4px 0 !important;
+}
+[data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
+    font-family: var(--mono-font) !important;
+    font-size: 0.86rem !important;
+    line-height: 1.65 !important;
+    color: var(--text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   MOS LABEL (legacy class, keep for safety)
+   ══════════════════════════════════════════════════════════════════ */
 .mos-label {
     font-family: var(--mono-font);
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--text-secondary);
-    margin-bottom: 6px;
-    letter-spacing: 0.04em;
+    margin-bottom: 4px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -1076,31 +1051,40 @@ def _delta_color(v, threshold=0):
     return "normal" if v >= threshold else "inverse"
 
 def _kpi(label: str, value: str, col=None):
-    """单行不折行关键数字卡片（等宽字体，投行终端风格）。"""
+    """
+    单行不折行关键数字卡片 — 投行等宽终端风格。
+    用纯 HTML div 渲染，CSS 类在全局 <style> 中定义，无内联 layout 属性。
+    col: 如果传入 st.columns 中的某个 col 对象则在那一列中渲染。
+    """
     html = (
-        f'<div class="kpi-box">'
-        f'<div class="kpi-label">{label}</div>'
-        f'<div class="kpi-value">{value}</div>'
-        f'</div>'
+        '<div class="kpi-box">'
+        f'<span class="kpi-label">{label}</span>'
+        f'<span class="kpi-value">{value}</span>'
+        '</div>'
     )
-    target = col if col else st
+    target = col if col is not None else st
     target.markdown(html, unsafe_allow_html=True)
 
 
 def _price_row(market_price: str, intrinsic_value: str,
                price_label: str, iv_label: str):
-    """安全边际画布：两个价格卡片 Flex 横排，彻底解决大数折行问题。"""
-    st.markdown(
-        f'<div class="price-row">'
-        f'  <div class="price-card">'
-        f'    <div class="price-card-label">{price_label}</div>'
-        f'    <div class="price-card-value">{market_price}</div>'
-        f'  </div>'
-        f'  <div class="price-card">'
-        f'    <div class="price-card-label">{iv_label}</div>'
-        f'    <div class="price-card-value intrinsic">{intrinsic_value}</div>'
-        f'  </div>'
-        f'</div>',
+    """
+    安全边际画布：两个价格卡片横排。
+    使用 st.columns([1,1]) 而非 Flexbox HTML，彻底消除条纹错位。
+    """
+    ca, cb = st.columns([1, 1], gap="small")
+    ca.markdown(
+        '<div class="price-card">'
+        f'<span class="price-card-label">{price_label}</span>'
+        f'<span class="price-card-value">{market_price}</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+    cb.markdown(
+        '<div class="price-card">'
+        f'<span class="price-card-label">{iv_label}</span>'
+        f'<span class="price-card-value intrinsic">{intrinsic_value}</span>'
+        '</div>',
         unsafe_allow_html=True,
     )
 
@@ -1330,7 +1314,7 @@ if not is_backtest:
         if dcf_err:
             st.warning(f"{T['dcf_err_label']}: {dcf_err}", icon="⚠️")
         else:
-            # Flex 横排价格卡，彻底消灭折行
+            # 两列价格卡 — st.columns 原生布局，彻底消灭折行与条纹错位
             _price_row(
                 _fmt_price(current_price),
                 _fmt_price(intrinsic_value),
@@ -1339,17 +1323,23 @@ if not is_backtest:
             )
 
             if mos is not None:
-                mos_color = ("#3fb950" if mos >= 10
-                             else ("#d29922" if mos >= -10 else "#f85149"))
-                mos_label = T["mos_progress_lbl"]
-                st.markdown(
-                    f'<div class="mos-row">'
-                    f'<span>{mos_label}</span>'
-                    f'<span class="mos-pct" style="color:{mos_color};">'
-                    f'{_fmt_pct(mos)}</span>'
-                    f'</div>',
+                mos_color = ("#2da44e" if mos >= 10
+                             else ("#9a6700" if mos >= -10 else "#cf222e"))
+                # MoS 标签行 — 用 st.columns 原生布局，不污染 st.progress 上下文
+                _ml, _mr = st.columns([2, 1], gap="small")
+                _ml.markdown(
+                    f'<span style="font-family:var(--mono-font);'
+                    f'font-size:0.74rem;color:var(--text-secondary);">'
+                    f'{T["mos_progress_lbl"]}</span>',
                     unsafe_allow_html=True,
                 )
+                _mr.markdown(
+                    f'<span style="font-family:var(--mono-font);font-weight:700;'
+                    f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
+                    f'{_fmt_pct(mos)}</span>',
+                    unsafe_allow_html=True,
+                )
+                # st.progress 独占整行 — 无任何前后 HTML 包裹
                 bar_val = min(max((mos + 60) / 120, 0.0), 1.0)
                 st.progress(bar_val)
 
@@ -1548,12 +1538,18 @@ else:
         )
 
         if mos_h is not None:
-            mos_color = "var(--accent-green)" if mos_h >= 0 else "var(--accent-red)"
-            st.markdown(
-                f'<div class="mos-row">'
-                f'<span>{T["mos_progress_lbl"]}</span>'
-                f'<span class="mos-pct" style="color:{mos_color};">{_fmt_pct(mos_h)}</span>'
-                f'</div>',
+            mos_color = "#2da44e" if mos_h >= 0 else "#cf222e"
+            _ml2, _mr2 = st.columns([2, 1], gap="small")
+            _ml2.markdown(
+                f'<span style="font-family:var(--mono-font);'
+                f'font-size:0.74rem;color:var(--text-secondary);">'
+                f'{T["mos_progress_lbl"]}</span>',
+                unsafe_allow_html=True,
+            )
+            _mr2.markdown(
+                f'<span style="font-family:var(--mono-font);font-weight:700;'
+                f'font-size:1.0rem;color:{mos_color};white-space:nowrap;">'
+                f'{_fmt_pct(mos_h)}</span>',
                 unsafe_allow_html=True,
             )
             bar_val = min(max((mos_h + 60) / 120, 0.0), 1.0)
