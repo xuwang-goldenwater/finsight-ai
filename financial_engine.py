@@ -335,9 +335,17 @@ def calculate_dcf_value(
     fcf_cap: float         = DEFAULT_FCF_CAP,
     forecast_years: int    = FORECAST_YEARS,
     _data: dict            = None,   # 外部传入时复用，避免重复拉取
+    stage1_growth: float   = None,   # Agent 预测：前 5 年增速（Two-Stage DCF）
+    stage2_growth_start: float = None,  # Agent 预测：第 6 年起始过渡增速
 ) -> dict:
     """
     基于 DCF 模型计算内在价值（每股）。
+
+    支持两种模式：
+    • 单阶段（默认）：全程使用历史 FCF CAGR（上限 fcf_cap）
+    • 两阶段（Agent 预测）：
+        - 第 1-5 年：使用 stage1_growth（Agent 预测高速增长率）
+        - 第 6-10 年：增速从 stage2_growth_start 线性递减至 terminal_growth
 
     公式:
         内在价值 = Σ [FCF_t / (1+r)^t]  +  Terminal Value / (1+r)^n
@@ -346,24 +354,29 @@ def calculate_dcf_value(
 
     返回 dict，包含所有中间变量供报告使用。
     """
+    _two_stage = (stage1_growth is not None and stage2_growth_start is not None)
+
     result = {
-        "ticker":           ticker.upper(),
-        "intrinsic_value":  None,
-        "current_price":    None,
-        "margin_of_safety": None,
-        "fcf_growth_rate":  None,
-        "base_fcf":         None,
-        "discount_rate":    discount_rate,
-        "terminal_growth":  terminal_growth,
-        "forecast_fcfs":    [],
-        "pv_fcfs":          [],
-        "terminal_value":   None,
-        "pv_terminal":      None,
-        "total_pv":         None,
-        "cash":             None,
-        "total_debt":       None,
-        "shares":           None,
-        "error":            None,
+        "ticker":               ticker.upper(),
+        "intrinsic_value":      None,
+        "current_price":        None,
+        "margin_of_safety":     None,
+        "fcf_growth_rate":      None,
+        "base_fcf":             None,
+        "discount_rate":        discount_rate,
+        "terminal_growth":      terminal_growth,
+        "stage1_growth":        stage1_growth,
+        "stage2_growth_start":  stage2_growth_start,
+        "two_stage_model":      _two_stage,
+        "forecast_fcfs":        [],
+        "pv_fcfs":              [],
+        "terminal_value":       None,
+        "pv_terminal":          None,
+        "total_pv":             None,
+        "cash":                 None,
+        "total_debt":           None,
+        "shares":               None,
+        "error":                None,
     }
 
     try:
@@ -424,11 +437,28 @@ def calculate_dcf_value(
         result["base_fcf"]        = float(last_fcf)
 
         # ── 预测未来 10 年 FCF 并折现 ─────────
+        # Two-Stage 模式：stage1_growth(yr1-5) + 线性过渡(yr6-10)
+        # Single-Stage 模式：全程 growth_rate
         forecast_fcfs = []
         pv_fcfs       = []
         base = float(last_fcf)
+        stage1 = stage1_growth if _two_stage else growth_rate
+        # stage2 list: linear decline from stage2_growth_start → terminal_growth over yr6-10
+        if _two_stage:
+            n_transition = forecast_years - 5  # typically 5
+            stage2_rates = [
+                stage2_growth_start + (terminal_growth - stage2_growth_start) * i / max(n_transition - 1, 1)
+                for i in range(n_transition)
+            ]
         for t in range(1, forecast_years + 1):
-            fcf_t  = base * (1 + growth_rate) ** t
+            if _two_stage:
+                g = stage1 if t <= 5 else stage2_rates[t - 6]
+            else:
+                g = growth_rate
+            if t == 1:
+                fcf_t = base * (1 + g)
+            else:
+                fcf_t = forecast_fcfs[-1] * (1 + g)
             pv_t   = fcf_t / (1 + discount_rate) ** t
             forecast_fcfs.append(fcf_t)
             pv_fcfs.append(pv_t)

@@ -247,19 +247,57 @@ def fetch_live_market_news(ticker: str,
 #   输出: 因果剖析 Markdown
 # ══════════════════════════════════════════════════════════════════
 
-_ANALYST_SYSTEM_ZH = """你是基本面量化分析师。用紧凑的 Markdown 输出，无废话。
-三个章节，每章节不超过 150 字：
+_ANALYST_SYSTEM_ZH = """你是基本面量化分析师，同时负责为两阶段 DCF 模型预测增速。用紧凑的 Markdown 输出，无废话。
+四个章节，每章节不超过 150 字：
 ## 1. 核心指标因果剖析
 ## 2. 指标间关键因果链
 ## 3. DCF 模型盲区说明
+## 4. 两阶段增速预测
+结合公司行业壁垒、护城河强度及近期市场动态，给出两阶段 FCF 增速预测。
+**必须**在第 4 章末尾用以下格式输出两行（不得省略，不得修改格式）：
+stage1_growth: X.X%
+stage2_growth_start: Y.Y%
+（stage1_growth = 未来 1-5 年年均增速；stage2_growth_start = 第 6 年起始过渡增速，需介于 stage1_growth 与永续增长率之间）
 请使用标准、通顺的简体中文输出，避免出现乱码、字符错位或排版异常。"""
 
-_ANALYST_SYSTEM_EN = """You are a quantitative fundamental analyst. Output concise Markdown, no filler.
-Three sections, each ≤150 words:
+_ANALYST_SYSTEM_EN = """You are a quantitative fundamental analyst responsible for Two-Stage DCF growth prediction. Output concise Markdown, no filler.
+Four sections, each ≤150 words:
 ## 1. Core Metrics — Causal Analysis
 ## 2. Key Causal Chain Between Metrics
 ## 3. DCF Model Blind Spots
+## 4. Two-Stage Growth Prediction
+Based on the company's industry moat, competitive barriers, and recent market dynamics, predict two-stage FCF growth rates.
+**You must** end Section 4 with exactly these two lines (no omissions, no format changes):
+stage1_growth: X.X%
+stage2_growth_start: Y.Y%
+(stage1_growth = avg annual FCF growth rate for years 1-5; stage2_growth_start = transition rate starting year 6, between stage1_growth and terminal growth rate)
 Use clean, fluent English. Avoid garbled characters or formatting artifacts."""
+
+_GROWTH_RATE_PATTERN = re.compile(
+    r"stage(\d)_growth(?:_start)?\s*:\s*([\d.]+)\s*%",
+    re.IGNORECASE,
+)
+
+def _parse_growth_rates(text: str) -> tuple:
+    """
+    从 Agent 输出文本中提取 stage1_growth 和 stage2_growth_start。
+    返回 (stage1_float_or_None, stage2_float_or_None)。
+    """
+    stage1, stage2 = None, None
+    for m in _GROWTH_RATE_PATTERN.finditer(text):
+        stage_num = int(m.group(1))
+        rate      = float(m.group(2)) / 100.0
+        if stage_num == 1:
+            stage1 = rate
+        elif stage_num == 2:
+            stage2 = rate
+    # Sanity clamp: 0% ~ 50%
+    if stage1 is not None:
+        stage1 = min(max(stage1, 0.0), 0.50)
+    if stage2 is not None:
+        stage2 = min(max(stage2, 0.0), 0.40)
+    return stage1, stage2
+
 
 def analyze_financial_metrics(
     metrics_json,
@@ -267,18 +305,19 @@ def analyze_financial_metrics(
     ticker: str = "the stock",
     model: str  = DEFAULT_MODEL,
     lang: str   = "zh",
-) -> str:
+) -> tuple:
     """
-    Layer 1：让 LLM 对基本面指标做因果关系深度解读。
+    Layer 1：让 LLM 对基本面指标做因果关系深度解读，并预测两阶段增速。
 
     参数:
         metrics_json : dict / JSON str — 基本面指标（来自 financial_engine）
         dcf_json     : dict / JSON str — DCF 估值结果
         ticker       : 股票代码，用于 Prompt 个性化
         model        : OpenAI 模型名
+        lang         : "zh" 或 "en"
 
     返回:
-        因果分析 Markdown 字符串
+        (analysis_text: str, stage1_growth: float | None, stage2_growth_start: float | None)
     """
     client  = _get_client()
     system  = _ANALYST_SYSTEM_EN if lang == "en" else _ANALYST_SYSTEM_ZH
@@ -290,8 +329,10 @@ def analyze_financial_metrics(
         f"Metrics:{_compact_json(slim_m)}\n"
         f"DCF:{_compact_json(slim_d)}"
     )
-    return _chat(client, system, user_prompt, model=model,
+    text = _chat(client, system, user_prompt, model=model,
                  max_tokens=_MAX_TOKENS["analyst"])
+    stage1, stage2 = _parse_growth_rates(text)
+    return text, stage1, stage2
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -648,9 +689,11 @@ def run_full_analysis(
     model: str        = DEFAULT_MODEL,
     save_report: bool = True,
     lang: str         = "zh",
-) -> str:
+    _fe_data: dict    = None,   # 可选：financial_engine fetch_financials() 数据，用于 DCF 重算
+) -> tuple:
     """
     完整三层分析流水线入口。
+    Layer 1 同时输出两阶段增速预测，用于重算 DCF 后传入 Layer 3。
 
     参数:
         ticker       : 股票代码，例如 "AAPL"
@@ -659,29 +702,51 @@ def run_full_analysis(
         use_search   : 是否启用 Google 搜索增强券商情报
         model        : OpenAI 模型（默认 gpt-4o）
         save_report  : 是否将报告保存为本地 Markdown 文件
+        _fe_data     : (可选) financial_engine.fetch_financials() 数据，传入时重算两阶段 DCF
 
     返回:
-        最终报告的 Markdown 字符串
+        (final_report: str, stage1_growth: float | None, stage2_growth_start: float | None, updated_dcf: dict)
     """
     ticker_upper = ticker.upper()
     print(f"\n{'═'*60}")
     print(f"  FinSight AI — 启动三层深度分析: {ticker_upper}")
     print(f"{'═'*60}")
 
-    # Layer 1
-    print(f"\n[Layer 1] FinancialAnalystAgent — 基本面因果剖析…")
-    causal_analysis = analyze_financial_metrics(metrics_json, dcf_json, ticker, model, lang=lang)
-    print("  ✓ 因果分析完成")
+    # Layer 1 — 基本面分析 + 两阶段增速预测
+    print(f"\n[Layer 1] FinancialAnalystAgent — 基本面因果剖析 + 增速预测…")
+    causal_analysis, stage1_growth, stage2_growth_start = analyze_financial_metrics(
+        metrics_json, dcf_json, ticker, model, lang=lang
+    )
+    print(f"  ✓ 因果分析完成 | stage1={stage1_growth} stage2_start={stage2_growth_start}")
+
+    # 若拿到有效增速预测，用 Two-Stage DCF 重算内在价值
+    updated_dcf = dcf_json if isinstance(dcf_json, dict) else {}
+    if stage1_growth is not None and stage2_growth_start is not None:
+        try:
+            import financial_engine as _fe
+            _dcf_kw = dict(
+                stage1_growth       = stage1_growth,
+                stage2_growth_start = stage2_growth_start,
+            )
+            if _fe_data is not None:
+                _dcf_kw["_data"] = _fe_data
+            updated_dcf = _fe.calculate_dcf_value(ticker, **_dcf_kw)
+            print(f"  ✓ Two-Stage DCF 重算完成: 内在价值 ${updated_dcf.get('intrinsic_value', 'N/A'):.2f}")
+        except Exception as e:
+            print(f"  [警告] Two-Stage DCF 重算失败: {e}，使用原始 DCF")
+            updated_dcf = dcf_json if isinstance(dcf_json, dict) else {}
+    else:
+        print("  [提示] 未能解析增速预测，使用原始单阶段 DCF")
 
     # Layer 2
     print(f"\n[Layer 2] BrokerIntelAgent — 获取市场多空观点…")
     broker_views = fetch_broker_views(ticker, use_search=use_search, model=model, lang=lang)
     print("  ✓ 多空情报就绪")
 
-    # Layer 3
+    # Layer 3 — 使用更新后的 DCF（Two-Stage）
     print(f"\n[Layer 3] InvestmentCommitteeAgent — 合成最终报告…")
     final_report = run_investment_committee(
-        ticker, metrics_json, dcf_json,
+        ticker, metrics_json, updated_dcf,
         causal_analysis, broker_views, model, lang=lang
     )
     print("  ✓ 深度报告生成完毕")
@@ -697,7 +762,7 @@ def run_full_analysis(
             print(f"\n  [警告] 保存报告失败: {e}")
 
     print(f"\n{'═'*60}\n")
-    return final_report
+    return final_report, stage1_growth, stage2_growth_start, updated_dcf
 
 
 # ══════════════════════════════════════════════════════════════════

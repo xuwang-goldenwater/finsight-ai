@@ -236,6 +236,9 @@ _I18N = {
         "wacc_label":        "折现率 · WACC",
         "term_g_label":      "永续增长 · Terminal g",
         "fcf_cagr_label":    "FCF 增速 · FCF CAGR",
+        "stage1_label":      "Agent 预测 · 前5年增速",
+        "stage2_label":      "Agent 预测 · 第6年起始",
+        "two_stage_badge":   "🤖 两阶段 DCF 已激活",
         "dcf_err_label":     "DCF 计算异常",
         "mos_deep":          "✅ **显著低估 · Deep Value**\n\n充足安全边际，符合价值投资买入标准。",
         "mos_slight":        "🟡 **轻微低估 · Slight Discount**\n\n有一定安全边际，可分批布局。",
@@ -338,6 +341,9 @@ _I18N = {
         "wacc_label":        "Discount Rate (WACC)",
         "term_g_label":      "Terminal Growth",
         "fcf_cagr_label":    "FCF CAGR",
+        "stage1_label":      "Agent Yr 1-5 Growth",
+        "stage2_label":      "Agent Yr 6 Transition",
+        "two_stage_badge":   "🤖 Two-Stage DCF Active",
         "dcf_err_label":     "DCF Calculation Error",
         "mos_deep":          "✅ **Deep Value**\n\nStrong margin of safety — meets value-buying criteria.",
         "mos_slight":        "🟡 **Slight Discount**\n\nModerate margin — consider gradual entry.",
@@ -572,9 +578,9 @@ def load_full_analysis(ticker: str, metrics_json: str, dcf_json: str,
                        lang_code: str = "zh"):
     _, aa, _, err = _import_backends()
     if err:
-        return None, err
+        return None, None, None, None, err
     try:
-        report = aa.run_full_analysis(
+        result = aa.run_full_analysis(
             ticker,
             json.loads(metrics_json),
             json.loads(dcf_json),
@@ -582,9 +588,15 @@ def load_full_analysis(ticker: str, metrics_json: str, dcf_json: str,
             save_report=False,
             lang=lang_code,
         )
-        return report, None
+        # run_full_analysis returns (report, stage1, stage2, updated_dcf)
+        if isinstance(result, tuple) and len(result) == 4:
+            report, stage1, stage2, updated_dcf = result
+        else:
+            # backward-compat: old version returned just a string
+            report, stage1, stage2, updated_dcf = result, None, None, {}
+        return report, stage1, stage2, updated_dcf, None
     except Exception as e:
-        return None, str(e)
+        return None, None, None, None, str(e)
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -760,6 +772,13 @@ if not ticker_input:
     st.warning(T["no_ticker_warn"], icon="⚠️")
     st.stop()
 
+# 每次用户触发新分析时，清除旧 Agent 预测，防止跨 ticker 残留
+_prev_ticker = st.session_state.get("_last_ticker", "")
+if ticker_input != _prev_ticker:
+    for _k in ("_stage1_growth", "_stage2_growth_start", "_updated_dcf"):
+        st.session_state.pop(_k, None)
+    st.session_state["_last_ticker"] = ticker_input
+
 
 # ══════════════════════════════════════════════════════════════════
 # ── 实时分析模式 ──────────────────────────────────────────────────
@@ -881,12 +900,27 @@ if not is_backtest:
         st.divider()
         st.markdown(f'<p class="section-title">{T["dcf_params"]}</p>',
                     unsafe_allow_html=True)
-        fcf_cagr_val = (f"{dcf.get('fcf_growth_rate', 0)*100:.1f}%"
-                        if dcf.get("fcf_growth_rate") is not None else "N/A")
-        # 单列叠放 — 避免 left_col 内三列太窄导致折行
-        _kpi(T["wacc_label"],     f"{dcf.get('discount_rate', 0.09)*100:.1f}%")
-        _kpi(T["term_g_label"],   f"{dcf.get('terminal_growth', 0.025)*100:.1f}%")
-        _kpi(T["fcf_cagr_label"], fcf_cagr_val)
+        # 从 session_state 读取 Agent 预测增速（在 Agent Report 渲染后写入）
+        _s1 = st.session_state.get("_stage1_growth")
+        _s2 = st.session_state.get("_stage2_growth_start")
+        # 若 Agent 已跑完，展示两阶段模式
+        if _s1 is not None and _s2 is not None:
+            st.markdown(
+                f'<div style="background:linear-gradient(90deg,#1e3a5f,#0f2a45);'
+                f'border-left:3px solid #38bdf8;padding:6px 10px;border-radius:6px;'
+                f'font-size:0.78rem;color:#7dd3fc;margin-bottom:8px;">'
+                f'{T["two_stage_badge"]}</div>',
+                unsafe_allow_html=True,
+            )
+            _kpi(T["stage1_label"], f"{_s1*100:.1f}%")
+            _kpi(T["stage2_label"], f"{_s2*100:.1f}%")
+        else:
+            # Agent 尚未运行，显示历史 FCF CAGR
+            fcf_cagr_val = (f"{dcf.get('fcf_growth_rate', 0)*100:.1f}%"
+                            if dcf.get("fcf_growth_rate") is not None else "N/A")
+            _kpi(T["fcf_cagr_label"], fcf_cagr_val)
+        _kpi(T["wacc_label"],   f"{dcf.get('discount_rate', 0.09)*100:.1f}%")
+        _kpi(T["term_g_label"], f"{dcf.get('terminal_growth', 0.025)*100:.1f}%")
 
     # ── 右栏：Agent 思维链 ─────────────────────────────────────────
     with right_col:
@@ -943,8 +977,12 @@ if not is_backtest:
                     if k != "ticker_obj"
                     and isinstance(v, (str, int, float, list, dict, type(None)))
                 })
-                final_report, err_report = load_full_analysis(
+                final_report, stage1_g, stage2_g, updated_dcf, err_report = load_full_analysis(
                     ticker_input, m_json, d_json, lang_code)
+                # 将 Agent 预测增速写入 session_state，供左侧面板展示
+                st.session_state["_stage1_growth"]        = stage1_g
+                st.session_state["_stage2_growth_start"]  = stage2_g
+                st.session_state["_updated_dcf"]          = updated_dcf
 
             if err_report:
                 st.error(f"{T['report_err']}: {err_report}")
