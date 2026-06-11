@@ -1,8 +1,8 @@
 """
 app.py
 ======
-FinSight AI — Streamlit 双语投资看板
-Bilingual Value Investing Dashboard (简体中文 / English)
+问巴菲特与达利欧 | Ask Buffett & Dalio
+双语价值投资智能研究平台 · Bilingual Value Investing Intelligence Platform
 
 Run:  streamlit run app.py
 """
@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore")
 # 页面配置（必须第一个 st 调用）
 # ══════════════════════════════════════════════════════════════════
 st.set_page_config(
-    page_title="FinSight AI",
-    page_icon="📊",
+    page_title="问巴菲特与达利欧 | Ask Buffett & Dalio",
+    page_icon="🏛️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -647,7 +647,7 @@ _I18N = {
         "bt_spin":           "⏳ 正在加载历史盲测…",
         "bt_err":            "盲测失败",
         # Footer
-        "footer":            "🔬 **FinSight AI** · 由 yfinance + OpenAI GPT-4o-mini 驱动 · ⚠️ 仅供研究参考，不构成投资建议",
+        "footer":            "🏛️ **问巴菲特与达利欧** · 由 yfinance + OpenAI GPT-4o-mini 驱动 · ⚠️ 仅供研究参考，不构成投资建议",
         # Outperform
         "outperform":        "跑赢 vs SPY",
         "inline":            "持平 vs SPY",
@@ -658,7 +658,7 @@ _I18N = {
         "chat_placeholder":  "例如：这个估值区间合理吗？最大的下行风险是什么？",
         "chat_thinking":     "🤔 投委会分析中…",
         "chat_no_data":      "请先在上方点击【开始分析】生成报告，再开启对话。",
-        "chat_welcome":      "你好！我是 FinSight 达利欧风格投资顾问。\n\n我已读取 **{ticker}** 的所有量化指标与五步法评估报告。请直接提问——估值合理性、风险识别、宏观周期定位，或任何你关心的投资问题。",
+        "chat_welcome":      "你好！我是【问巴菲特与达利欧】的 AI 投资顾问，融合巴菲特价值投资哲学与达利欧系统机器思维。\n\n我已读取 **{ticker}** 的所有量化指标与五步法评估报告。请直接提问——估值合理性、风险识别、宏观周期定位，或任何你关心的投资问题。",
     },
     "English": {
         "lang_label":        "Language / 语言",
@@ -755,7 +755,7 @@ _I18N = {
         "report_spin":       "⚙️ Committee synthesizing report…",
         "bt_spin":           "⏳ Running historical backtest…",
         "bt_err":            "Backtest failed",
-        "footer":            "🔬 **FinSight AI** · Powered by yfinance & OpenAI GPT-4o-mini · ⚠️ For research only, not financial advice",
+        "footer":            "🏛️ **Ask Buffett & Dalio** · Powered by yfinance & OpenAI GPT-4o-mini · ⚠️ For research only, not financial advice",
         "outperform":        "Outperformed SPY",
         "inline":            "In-line with SPY",
         "underperform":      "Underperformed SPY",
@@ -765,7 +765,7 @@ _I18N = {
         "chat_placeholder":  "e.g. Is this valuation reasonable? What's the biggest downside risk?",
         "chat_thinking":     "🤔 Committee analysing…",
         "chat_no_data":      "Please run an analysis above first, then start chatting.",
-        "chat_welcome":      "Hello! I'm your FinSight Dalio-style investment advisor.\n\nI've reviewed all the quantitative metrics and the Five-Step assessment for **{ticker}**. Ask me anything — valuation range, risk identification, macro cycle positioning, or any investment question you have.",
+        "chat_welcome":      "Hello! I'm the AI advisor for **Ask Buffett & Dalio** — combining Buffett's value investing philosophy with Dalio's Systems/Machine Thinking.\n\nI've reviewed all the quantitative metrics and the Five-Step assessment for **{ticker}**. Ask me anything — valuation range, risk identification, macro cycle positioning, or any investment question you have.",
     },
 }
 
@@ -784,8 +784,30 @@ with st.sidebar:
     T = _I18N[lang]             # 全局文本引用
     lang_code = "en" if lang == "English" else "zh"   # 传给 LLM
 
-    st.markdown("## 📊 FinSight AI")
-    st.markdown("**价值投资看板 · Value Investing Dashboard**")
+    # ── Sidebar 品牌 Logo ──────────────────────────────────────────
+    st.markdown(
+        "<div style='"
+        "font-family:var(--mono-font,monospace);"
+        "padding:4px 0 12px;"
+        "border-bottom:1px solid var(--border-subtle,#e1e4e6);"
+        "margin-bottom:16px;"
+        "'>"
+        "<div style='"
+        "font-size:0.72rem;font-weight:700;letter-spacing:0.14em;"
+        "text-transform:uppercase;color:var(--text-muted,#8c959f);"
+        "margin-bottom:5px;'"
+        ">Value Intelligence Platform</div>"
+        "<div style='"
+        "font-size:1.05rem;font-weight:700;color:var(--text-primary,#1b1f23);"
+        "line-height:1.35;letter-spacing:-0.01em;'"
+        ">问巴菲特与达利欧</div>"
+        "<div style='"
+        "font-size:0.78rem;font-weight:500;color:var(--text-secondary,#57606a);"
+        "letter-spacing:0.02em;margin-top:1px;'"
+        ">Ask Buffett &amp; Dalio</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     st.divider()
 
     ticker_input = st.text_input(
@@ -1192,20 +1214,33 @@ _mode_tag  = T["bt_mode_tag"]  if is_backtest else T["live_mode_tag"]
 _mode_meta = (f"{T['snapshot_label']}: {backtest_year}"
               if is_backtest else f"{T['today_label']}: {date.today().isoformat()}")
 st.markdown(
-    f"<div style='font-family:var(--mono-font);margin-bottom:4px;'>"
-    f"<span style='font-size:1.35rem;font-weight:700;"
-    f"color:var(--text-primary);letter-spacing:-0.01em;'>"
-    f"FinSight AI</span>"
-    f"<span style='font-size:1.0rem;color:var(--text-muted);margin:0 8px;'>·</span>"
-    f"<span style='font-size:1.0rem;color:var(--text-secondary);'>"
-    f"{ticker_input or '—'}</span>"
+    # ── 主标题区块 ──
+    "<div style='font-family:var(--mono-font,monospace);margin-bottom:20px;"
+    "padding-bottom:16px;border-bottom:1px solid var(--border-subtle,#e1e4e6);'>"
+
+    # 上方：中英品牌名
+    "<div style='display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;"
+    "margin-bottom:6px;'>"
+    "<span style='font-size:1.5rem;font-weight:700;color:var(--text-primary,#1b1f23);"
+    "letter-spacing:-0.02em;line-height:1.2;'>问巴菲特与达利欧</span>"
+    "<span style='font-size:0.95rem;font-weight:500;color:var(--text-secondary,#57606a);"
+    "letter-spacing:0.01em;'>Ask Buffett &amp; Dalio</span>"
+    "</div>"
+
+    # 下方：股票代码 + 模式标签
+    f"<div style='display:flex;align-items:center;gap:12px;flex-wrap:wrap;'>"
+    f"<span style='font-size:1.05rem;font-weight:700;color:var(--accent-blue,#0969da);"
+    f"letter-spacing:0.02em;'>{ticker_input or '—'}</span>"
+    f"<span style='font-size:0.65rem;font-weight:600;letter-spacing:0.12em;"
+    f"text-transform:uppercase;color:var(--text-muted,#8c959f);"
+    f"border:1px solid var(--border-subtle,#e1e4e6);border-radius:3px;"
+    f"padding:2px 8px;white-space:nowrap;'>{_mode_tag}</span>"
+    f"<span style='font-size:0.72rem;color:var(--text-muted,#8c959f);'>{_mode_meta}</span>"
     f"</div>"
-    f"<div style='font-family:var(--mono-font);font-size:0.72rem;"
-    f"letter-spacing:0.10em;text-transform:uppercase;color:var(--text-muted);"
-    f"margin-bottom:16px;'>{_mode_tag} &nbsp;·&nbsp; {_mode_meta}</div>",
+
+    "</div>",
     unsafe_allow_html=True,
 )
-st.divider()
 
 # ── 等待按钮 ─────────────────────────────────────────────────────
 if not run_btn:
