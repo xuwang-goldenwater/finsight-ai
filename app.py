@@ -33,146 +33,531 @@ st.set_page_config(
 # ══════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
-/* ── 卡片容器 ── */
-.metric-card {
-    background: linear-gradient(135deg,#1e2130 0%,#252a3d 100%);
-    border: 1px solid #2e3455;
-    border-radius: 12px;
-    padding: 16px 20px;
+/* ════════════════════════════════════════════════════════════════════
+   FINSIGHT AI — GLOBAL DESIGN SYSTEM
+   Theme: Investment-Bank Research · Claude Code Terminal Aesthetic
+   Palette: Deep cold darks · Monospace data · Muted signals
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Google Fonts: JetBrains Mono ─────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+/* ── CSS Custom Properties ────────────────────────────────────── */
+:root {
+    --bg-base:       #0d0f14;
+    --bg-surface:    #161b22;
+    --bg-raised:     #1c2128;
+    --bg-overlay:    #21262d;
+    --border-subtle: #30363d;
+    --border-muted:  #21262d;
+    --text-primary:  #e6edf3;
+    --text-secondary:#8b949e;
+    --text-muted:    #484f58;
+    --accent-blue:   #58a6ff;
+    --accent-green:  #3fb950;
+    --accent-red:    #f85149;
+    --accent-yellow: #d29922;
+    --accent-teal:   #39d353;
+    --mono-font:     'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, Consolas, monospace;
+}
+
+/* ── App shell background ─────────────────────────────────────── */
+.stApp, [data-testid="stAppViewContainer"] {
+    background-color: var(--bg-base) !important;
+}
+[data-testid="stSidebar"] {
+    background-color: var(--bg-surface) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+}
+
+/* ── Global typography ────────────────────────────────────────── */
+html, body, [class*="css"] {
+    font-family: var(--mono-font) !important;
+    line-height: 1.6 !important;
+    color: var(--text-primary) !important;
+    -webkit-font-smoothing: antialiased;
+}
+p, li, .stMarkdown {
+    line-height: 1.6 !important;
+    color: var(--text-primary);
+}
+
+/* ── Headings ─────────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+    font-family: var(--mono-font) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--text-primary) !important;
+}
+h1 { font-size: 1.4rem !important; }
+h2 { font-size: 1.15rem !important; }
+h3 { font-size: 1.0rem !important; }
+
+/* ── Dividers ─────────────────────────────────────────────────── */
+hr { border-color: var(--border-subtle) !important; margin: 20px 0 !important; }
+
+/* ── ═══ DECISION BADGES ═══ ─────────────────────────────────── */
+.badge-buy {
+    display: inline-block;
+    background: transparent;
+    color: var(--accent-green);
+    border: 1px solid var(--accent-green);
+    border-radius: 4px;
+    padding: 5px 18px;
+    font-family: var(--mono-font);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.badge-hold {
+    display: inline-block;
+    background: transparent;
+    color: var(--accent-yellow);
+    border: 1px solid var(--accent-yellow);
+    border-radius: 4px;
+    padding: 5px 18px;
+    font-family: var(--mono-font);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.badge-sell {
+    display: inline-block;
+    background: transparent;
+    color: var(--accent-red);
+    border: 1px solid var(--accent-red);
+    border-radius: 4px;
+    padding: 5px 18px;
+    font-family: var(--mono-font);
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ── ═══ SECTION TITLE ═══ ───────────────────────────────────── */
+.section-title {
+    font-family: var(--mono-font);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin: 20px 0 8px 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--accent-blue);
+}
+
+/* ── ═══ KPI BOX ═══ ─────────────────────────────────────────── */
+.kpi-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px 16px;
     margin-bottom: 8px;
 }
-
-/* ── 决策徽章 ── */
-.badge-buy  { background:#1a4731; color:#4ade80; border:1px solid #4ade80;
-              border-radius:8px; padding:6px 16px; font-weight:700; font-size:1.05rem; }
-.badge-hold { background:#3d3318; color:#facc15; border:1px solid #facc15;
-              border-radius:8px; padding:6px 16px; font-weight:700; font-size:1.05rem; }
-.badge-sell { background:#3d1a1a; color:#f87171; border:1px solid #f87171;
-              border-radius:8px; padding:6px 16px; font-weight:700; font-size:1.05rem; }
-
-/* ── 安全边际标签 ── */
-.mos-label { font-size:0.82rem; color:#94a3b8; margin-bottom:4px; }
-
-/* ── 章节小标题 ── */
-.section-title {
-    font-size:0.78rem; font-weight:700; letter-spacing:0.10em;
-    text-transform:uppercase; color:#93c5fd; margin:14px 0 6px 0;
-    border-left: 3px solid #3b82f6; padding-left: 8px;
+.kpi-label {
+    font-family: var(--mono-font);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
-
-/* ── 关键数字：单行、不折行 ── */
 .kpi-value {
-    font-size: 1.2rem;
+    font-family: var(--mono-font);
+    font-size: 1.15rem;
     font-weight: 700;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #e2e8f0;
-    line-height: 1.4;
-}
-.kpi-label {
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: #94a3b8;
-    white-space: nowrap;
-    margin-bottom: 3px;
-    letter-spacing: 0.01em;
-}
-.kpi-box {
-    background: #1e2130;
-    border: 1px solid #2e3455;
-    border-radius: 10px;
-    padding: 11px 14px;
-    margin-bottom: 7px;
+    color: var(--text-primary);
+    line-height: 1.3;
 }
 
-/* ── 公司名片 ── */
+/* ── ═══ MOS PRICE ROW ═══ ───────────────────────────────────── */
+/* Two price cards side-by-side in MoS canvas — full Flexbox control */
+.price-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.price-card {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px 16px;
+    min-width: 0;
+}
+.price-card-label {
+    font-family: var(--mono-font);
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+.price-card-value {
+    font-family: var(--mono-font);
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+    line-height: 1.2;
+    color: var(--text-primary);
+}
+.price-card-value.intrinsic { color: var(--accent-blue); }
+.mos-pct {
+    font-family: var(--mono-font);
+    font-size: 1.0rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.mos-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-family: var(--mono-font);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+/* ── ═══ COMPANY CARD ═══ ────────────────────────────────────── */
 .company-card {
-    background: linear-gradient(135deg,#141928 0%,#1a1f35 100%);
-    border: 1px solid #334155;
-    border-radius: 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
     padding: 20px 24px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
 }
 .company-name {
-    font-size: 1.35rem;
+    font-family: var(--mono-font);
+    font-size: 1.25rem;
     font-weight: 700;
-    color: #f1f5f9;
+    color: var(--text-primary);
     margin: 0 0 2px 0;
+    letter-spacing: -0.01em;
 }
 .company-meta {
-    font-size: 0.8rem;
-    color: #64748b;
+    font-family: var(--mono-font);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
 }
 .company-tag {
     display: inline-block;
-    background: #1e3a5f;
-    color: #93c5fd;
-    border-radius: 6px;
-    padding: 2px 10px;
-    font-size: 0.75rem;
+    background: var(--bg-overlay);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 1px 8px;
+    font-family: var(--mono-font);
+    font-size: 0.70rem;
+    letter-spacing: 0.04em;
     margin: 4px 4px 0 0;
 }
 .price-big {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #4ade80;
+    font-family: var(--mono-font);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-green);
     white-space: nowrap;
+    letter-spacing: -0.01em;
 }
 
-/* ── 强制 st.metric 不折行 ── */
+/* ── ═══ BULL / BEAR CARDS ═══ ──────────────────────────────── */
+/* Muted dark base; only the left border carries the signal color */
+.bull-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 2px solid #238636;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    font-family: var(--mono-font);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+.bear-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 2px solid #da3633;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    font-family: var(--mono-font);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* ── ═══ SIGNAL BADGES (Bull / Bear labels) ═══ ─────────────── */
+.signal-badge-bull {
+    display: inline-block;
+    background: transparent;
+    color: #3fb950;
+    border: 1px solid #238636;
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-family: var(--mono-font);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+.signal-badge-bear {
+    display: inline-block;
+    background: transparent;
+    color: #f85149;
+    border: 1px solid #da3633;
+    border-radius: 4px;
+    padding: 2px 10px;
+    font-family: var(--mono-font);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+/* ── ═══ CONSENSUS BAR ═══ ───────────────────────────────────── */
+.consensus-bar {
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: var(--mono-font);
+    font-size: 0.80rem;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+/* ── ═══ TWO-STAGE DCF BADGE ═══ ────────────────────────────── */
+.two-stage-badge {
+    background: var(--bg-overlay);
+    border-left: 2px solid var(--accent-blue);
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-family: var(--mono-font);
+    font-size: 0.70rem;
+    font-weight: 600;
+    color: var(--accent-blue);
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+}
+
+/* ── ═══ REPORT BODY ═══ ─────────────────────────────────────── */
+.report-body {
+    font-family: var(--mono-font);
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text-primary);
+}
+.report-body h1, .report-body h2, .report-body h3, .report-body h4 {
+    font-family: var(--mono-font) !important;
+    color: var(--text-primary) !important;
+    margin-top: 20px !important;
+    margin-bottom: 8px !important;
+}
+.report-body h3 { font-size: 0.92rem !important; font-weight: 700 !important; }
+.report-body h4 { font-size: 0.88rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
+.report-body strong { color: var(--text-primary); }
+.report-body blockquote {
+    border-left: 2px solid var(--border-subtle);
+    padding-left: 14px;
+    margin: 12px 0;
+    color: var(--text-secondary);
+    font-style: normal;
+}
+.report-body hr { border-color: var(--border-subtle) !important; }
+.report-body code {
+    font-family: var(--mono-font);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 0.85em;
+}
+
+/* ── ═══ TABS ═══ ────────────────────────────────────────────── */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    border-bottom: 1px solid var(--border-subtle) !important;
+    gap: 0 !important;
+}
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    font-family: var(--mono-font) !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+    color: var(--text-secondary) !important;
+    background: transparent !important;
+    border-bottom: 2px solid transparent !important;
+    padding: 8px 16px !important;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, border-color 0.15s;
+}
+[data-testid="stTabs"] [aria-selected="true"] {
+    color: var(--text-primary) !important;
+    border-bottom: 2px solid var(--accent-blue) !important;
+    font-weight: 700 !important;
+}
+
+/* ── ═══ STREAMLIT METRIC (KPI fallback) ═══ ────────────────── */
 [data-testid="stMetricValue"] {
+    font-family: var(--mono-font) !important;
     font-size: 1.05rem !important;
+    font-weight: 700 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
+    color: var(--text-primary) !important;
 }
 [data-testid="stMetricLabel"] {
-    font-size: 0.72rem !important;
+    font-family: var(--mono-font) !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
     white-space: nowrap !important;
+    color: var(--text-secondary) !important;
+}
+[data-testid="stMetricDelta"] {
+    font-family: var(--mono-font) !important;
+    font-size: 0.72rem !important;
 }
 
-/* ── 报告区大标题降级 ── */
-.report-body h1 { font-size: 1.1rem !important; font-weight: 700; }
-.report-body h2 { font-size: 1.0rem !important; font-weight: 700; }
-.report-body h3 { font-size: 0.95rem !important; font-weight: 600; }
+/* ── ═══ DATAFRAME ═══ ───────────────────────────────────────── */
+[data-testid="stDataFrame"] {
+    font-family: var(--mono-font) !important;
+    font-size: 0.80rem !important;
+}
 
-/* ── 多空观点卡片 ── */
-.bull-card {
-    background: linear-gradient(135deg, #0f2e1a 0%, #14381f 100%);
-    border: 1px solid #16a34a;
-    border-left: 4px solid #4ade80;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    font-size: 0.88rem;
-    color: #bbf7d0;
-    line-height: 1.65;
+/* ── ═══ CHAT UI — Claude-style ═══ ────────────────────────── */
+/* Input box */
+[data-testid="stChatInput"] {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 8px !important;
+    font-family: var(--mono-font) !important;
+    font-size: 0.88rem !important;
 }
-.bear-card {
-    background: linear-gradient(135deg, #2e0f0f 0%, #381414 100%);
-    border: 1px solid #dc2626;
-    border-left: 4px solid #f87171;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    font-size: 0.88rem;
-    color: #fecaca;
-    line-height: 1.65;
+[data-testid="stChatInput"]:focus-within {
+    border-color: var(--accent-blue) !important;
+    box-shadow: 0 0 0 2px rgba(88,166,255,0.15) !important;
 }
-.signal-badge-bull {
-    display:inline-block; background:#14532d; color:#4ade80;
-    border-radius:5px; padding:2px 10px; font-size:0.72rem;
-    font-weight:700; margin-bottom:10px; letter-spacing:0.05em;
+/* Message bubbles */
+[data-testid="stChatMessage"] {
+    background: transparent !important;
+    border: none !important;
+    padding: 6px 0 !important;
 }
-.signal-badge-bear {
-    display:inline-block; background:#7f1d1d; color:#f87171;
-    border-radius:5px; padding:2px 10px; font-size:0.72rem;
-    font-weight:700; margin-bottom:10px; letter-spacing:0.05em;
+/* User bubble */
+[data-testid="stChatMessage"][data-testid*="user"] > div,
+.stChatMessage.user > div {
+    background: var(--bg-overlay) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 6px !important;
+    padding: 10px 14px !important;
 }
-.consensus-bar {
-    background:#1e293b; border:1px solid #334155; border-radius:8px;
-    padding:10px 14px; font-size:0.85rem; color:#94a3b8; margin-bottom:12px;
+/* Assistant bubble */
+[data-testid="stChatMessage"] > div {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-muted) !important;
+    border-radius: 6px !important;
+    font-family: var(--mono-font) !important;
+    font-size: 0.86rem !important;
+    line-height: 1.65 !important;
+    padding: 10px 14px !important;
+}
+/* Avatar icon area */
+[data-testid="stChatMessage"] > div:first-child {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* ── ═══ STREAMLIT NATIVE OVERRIDES ═══ ─────────────────────── */
+/* Buttons */
+[data-testid="stButton"] button {
+    font-family: var(--mono-font) !important;
+    font-size: 0.80rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    border-radius: 5px !important;
+    border: 1px solid var(--border-subtle) !important;
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.15s, background 0.15s;
+}
+[data-testid="stButton"] button:hover {
+    border-color: var(--accent-blue) !important;
+    background: var(--bg-raised) !important;
+}
+/* Primary/CTA button (run btn) */
+[data-testid="stButton"] button[kind="primary"],
+.stButton > button[kind="primary"] {
+    background: var(--accent-blue) !important;
+    color: #0d0f14 !important;
+    border-color: var(--accent-blue) !important;
+    font-weight: 700 !important;
+}
+/* Expanders */
+[data-testid="stExpander"] {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 6px !important;
+}
+[data-testid="stExpander"] summary {
+    font-family: var(--mono-font) !important;
+    font-size: 0.80rem !important;
+    color: var(--text-secondary) !important;
+}
+/* Selectbox / Radio */
+[data-testid="stSelectbox"] label,
+[data-testid="stRadio"] label,
+[data-testid="stTextInput"] label {
+    font-family: var(--mono-font) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    color: var(--text-secondary) !important;
+}
+/* Sidebar captions & widgets */
+[data-testid="stSidebar"] .stCaption,
+[data-testid="stSidebar"] .stMarkdown {
+    font-family: var(--mono-font) !important;
+    font-size: 0.75rem !important;
+    color: var(--text-secondary) !important;
+}
+/* Progress bar */
+[data-testid="stProgressBar"] > div {
+    background: var(--bg-overlay) !important;
+    border-radius: 3px !important;
+}
+[data-testid="stProgressBar"] > div > div {
+    background: var(--accent-blue) !important;
+    border-radius: 3px !important;
+}
+/* Info / warning / success / error boxes */
+[data-testid="stInfo"]    { background: var(--bg-surface) !important; border-color: var(--accent-blue) !important; }
+[data-testid="stSuccess"] { background: var(--bg-surface) !important; border-color: var(--accent-green) !important; }
+[data-testid="stWarning"] { background: var(--bg-surface) !important; border-color: var(--accent-yellow) !important; }
+[data-testid="stError"]   { background: var(--bg-surface) !important; border-color: var(--accent-red) !important; }
+
+/* ── ═══ MOS LABEL ═══ ───────────────────────────────────────── */
+.mos-label {
+    font-family: var(--mono-font);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -691,13 +1076,33 @@ def _delta_color(v, threshold=0):
     return "normal" if v >= threshold else "inverse"
 
 def _kpi(label: str, value: str, col=None):
-    """单行不折行关键数字卡片（替代 st.metric 大字号）。"""
-    html = (f'<div class="kpi-box">'
-            f'<div class="kpi-label">{label}</div>'
-            f'<div class="kpi-value">{value}</div>'
-            f'</div>')
+    """单行不折行关键数字卡片（等宽字体，投行终端风格）。"""
+    html = (
+        f'<div class="kpi-box">'
+        f'<div class="kpi-label">{label}</div>'
+        f'<div class="kpi-value">{value}</div>'
+        f'</div>'
+    )
     target = col if col else st
     target.markdown(html, unsafe_allow_html=True)
+
+
+def _price_row(market_price: str, intrinsic_value: str,
+               price_label: str, iv_label: str):
+    """安全边际画布：两个价格卡片 Flex 横排，彻底解决大数折行问题。"""
+    st.markdown(
+        f'<div class="price-row">'
+        f'  <div class="price-card">'
+        f'    <div class="price-card-label">{price_label}</div>'
+        f'    <div class="price-card-value">{market_price}</div>'
+        f'  </div>'
+        f'  <div class="price-card">'
+        f'    <div class="price-card-label">{iv_label}</div>'
+        f'    <div class="price-card-value intrinsic">{intrinsic_value}</div>'
+        f'  </div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 def _downgrade_headers(md: str) -> str:
     """将报告中 # → ###，## → #### 减小 Streamlit 渲染字号。"""
@@ -751,27 +1156,37 @@ def render_company_card(info: dict, ticker: str, T: dict):
         for t in [sector, industry, exchange]
         if t and t != "—"
     )
+    _website_html = (
+        f"<span>🌐 <b>{T['website']}</b>: "
+        f"<a href='{website}' target='_blank' "
+        f"style='color:var(--accent-blue);text-decoration:none;'>"
+        f"{website.replace('https://','').rstrip('/')}</a></span>"
+        if website else ""
+    )
     st.markdown(f"""
 <div class="company-card">
-  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
-    <div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+    <div style="min-width:0;">
       <div class="company-name">{name}</div>
       <div class="company-meta">{ticker} &nbsp;·&nbsp; {exchange}</div>
-      <div style="margin-top:6px;">{tags_html}</div>
+      <div style="margin-top:8px;">{tags_html}</div>
     </div>
-    <div style="text-align:right;">
+    <div style="text-align:right;flex-shrink:0;">
       <div class="price-big">{price_str}</div>
-      <div style="font-size:0.75rem; color:#64748b;">{T['market_cap']}: {mcap_str}</div>
-      <div style="font-size:0.75rem; color:#64748b; white-space:nowrap;">
-        {T['week52']}: {wk52_str}
+      <div style="font-family:var(--mono-font);font-size:0.72rem;color:var(--text-muted);margin-top:3px;">
+        {T['market_cap']}: {mcap_str}
+      </div>
+      <div style="font-family:var(--mono-font);font-size:0.72rem;color:var(--text-muted);white-space:nowrap;">
+        52W: {wk52_str}
       </div>
     </div>
   </div>
-  <hr style="border-color:#2e3455; margin:12px 0;">
-  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:6px; font-size:0.78rem; color:#94a3b8;">
-    <span>📅 <b>{T['ipo_date']}</b>: {ipo_str}</span>
-    <span>👥 <b>{T['employees']}</b>: {emp_str}</span>
-    {"<span>🌐 <b>" + T['website'] + "</b>: <a href='" + website + "' target='_blank' style='color:#93c5fd;'>" + website.replace("https://","").rstrip("/") + "</a></span>" if website else ""}
+  <hr style="border-color:var(--border-subtle);margin:14px 0 10px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;
+              font-family:var(--mono-font);font-size:0.75rem;color:var(--text-secondary);">
+    <span>📅 {T['ipo_date']}: <b style="color:var(--text-primary);">{ipo_str}</b></span>
+    <span>👥 {T['employees']}: <b style="color:var(--text-primary);">{emp_str}</b></span>
+    {_website_html}
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -780,7 +1195,8 @@ def render_company_card(info: dict, ticker: str, T: dict):
     if summary:
         with st.expander(T["summary_expand"], expanded=False):
             st.markdown(
-                f"<div style='font-size:0.85rem; color:#cbd5e1; line-height:1.7;'>{summary}</div>",
+                f"<div style='font-family:var(--mono-font);font-size:0.84rem;"
+                f"color:var(--text-secondary);line-height:1.7;'>{summary}</div>",
                 unsafe_allow_html=True,
             )
 
@@ -788,17 +1204,23 @@ def render_company_card(info: dict, ticker: str, T: dict):
 # ══════════════════════════════════════════════════════════════════
 # 主面板标题
 # ══════════════════════════════════════════════════════════════════
-st.markdown(f"# 📊 FinSight AI &nbsp;·&nbsp; {ticker_input or '—'}")
-if is_backtest:
-    st.markdown(
-        f"**{T['bt_mode_tag']}** &nbsp;—&nbsp; "
-        f"{T['snapshot_label']}: **{backtest_year}**"
-    )
-else:
-    st.markdown(
-        f"**{T['live_mode_tag']}** &nbsp;—&nbsp; "
-        f"{T['today_label']}: **{date.today().isoformat()}**"
-    )
+_mode_tag  = T["bt_mode_tag"]  if is_backtest else T["live_mode_tag"]
+_mode_meta = (f"{T['snapshot_label']}: {backtest_year}"
+              if is_backtest else f"{T['today_label']}: {date.today().isoformat()}")
+st.markdown(
+    f"<div style='font-family:var(--mono-font);margin-bottom:4px;'>"
+    f"<span style='font-size:1.35rem;font-weight:700;"
+    f"color:var(--text-primary);letter-spacing:-0.01em;'>"
+    f"FinSight AI</span>"
+    f"<span style='font-size:1.0rem;color:var(--text-muted);margin:0 8px;'>·</span>"
+    f"<span style='font-size:1.0rem;color:var(--text-secondary);'>"
+    f"{ticker_input or '—'}</span>"
+    f"</div>"
+    f"<div style='font-family:var(--mono-font);font-size:0.72rem;"
+    f"letter-spacing:0.10em;text-transform:uppercase;color:var(--text-muted);"
+    f"margin-bottom:16px;'>{_mode_tag} &nbsp;·&nbsp; {_mode_meta}</div>",
+    unsafe_allow_html=True,
+)
 st.divider()
 
 # ── 等待按钮 ─────────────────────────────────────────────────────
@@ -908,17 +1330,24 @@ if not is_backtest:
         if dcf_err:
             st.warning(f"{T['dcf_err_label']}: {dcf_err}", icon="⚠️")
         else:
-            pa, pb = st.columns(2)
-            # 用 _kpi 防折行
-            _kpi(T["market_price"],    _fmt_price(current_price), pa)
-            _kpi(T["intrinsic_label"], _fmt_price(intrinsic_value), pb)
+            # Flex 横排价格卡，彻底消灭折行
+            _price_row(
+                _fmt_price(current_price),
+                _fmt_price(intrinsic_value),
+                T["market_price"],
+                T["intrinsic_label"],
+            )
 
             if mos is not None:
-                mos_color = "#4ade80" if mos >= 10 else ("#facc15" if mos >= -10 else "#f87171")
+                mos_color = ("#3fb950" if mos >= 10
+                             else ("#d29922" if mos >= -10 else "#f85149"))
+                mos_label = T["mos_progress_lbl"]
                 st.markdown(
-                    f'<p class="mos-label">{T["mos_progress_lbl"]}: '
-                    f'<b style="color:{mos_color}; font-size:1rem; white-space:nowrap;">'
-                    f'{_fmt_pct(mos)}</b></p>',
+                    f'<div class="mos-row">'
+                    f'<span>{mos_label}</span>'
+                    f'<span class="mos-pct" style="color:{mos_color};">'
+                    f'{_fmt_pct(mos)}</span>'
+                    f'</div>',
                     unsafe_allow_html=True,
                 )
                 bar_val = min(max((mos + 60) / 120, 0.0), 1.0)
@@ -944,10 +1373,7 @@ if not is_backtest:
         # 若 Agent 已跑完，展示两阶段模式
         if _s1 is not None and _s2 is not None:
             st.markdown(
-                f'<div style="background:linear-gradient(90deg,#1e3a5f,#0f2a45);'
-                f'border-left:3px solid #38bdf8;padding:6px 10px;border-radius:6px;'
-                f'font-size:0.78rem;color:#7dd3fc;margin-bottom:8px;">'
-                f'{T["two_stage_badge"]}</div>',
+                f'<div class="two-stage-badge">{T["two_stage_badge"]}</div>',
                 unsafe_allow_html=True,
             )
             _kpi(T["stage1_label"], f"{_s1*100:.1f}%")
@@ -1059,9 +1485,11 @@ else:
     # ── 决策横幅 ──────────────────────────────────────────────────
     decision = bt_result.get("decision", "HOLD")
     st.markdown(
-        f"<div style='text-align:center; margin:12px 0 20px;'>"
-        f"<span style='color:#94a3b8; font-size:0.88rem;'>{T['ai_decision']}</span>"
-        f"<br><br>{_decision_badge(decision)}</div>",
+        f"<div style='text-align:center;margin:16px 0 24px;"
+        f"font-family:var(--mono-font);'>"
+        f"<div style='font-size:0.70rem;letter-spacing:0.12em;text-transform:uppercase;"
+        f"color:var(--text-secondary);margin-bottom:10px;'>{T['ai_decision']}</div>"
+        f"{_decision_badge(decision)}</div>",
         unsafe_allow_html=True,
     )
     st.divider()
@@ -1112,16 +1540,20 @@ else:
         iv_h = hist_dcf.get("intrinsic_value")
         mos_h= hist_dcf.get("margin_of_safety")
 
-        pa, pb = st.columns(2)
-        _kpi(f"{backtest_year} {T['entry_price']}", _fmt_price(bp), pa)
-        _kpi(T["hist_iv"], _fmt_price(iv_h), pb)
+        _price_row(
+            _fmt_price(bp),
+            _fmt_price(iv_h),
+            f"{backtest_year} · {T['entry_price']}",
+            T["hist_iv"],
+        )
 
         if mos_h is not None:
-            mos_color = "#4ade80" if mos_h >= 0 else "#f87171"
+            mos_color = "var(--accent-green)" if mos_h >= 0 else "var(--accent-red)"
             st.markdown(
-                f'<p style="text-align:center; color:#94a3b8; font-size:0.85rem;">'
-                f'{T["mos_progress_lbl"]} = '
-                f'<b style="color:{mos_color}; white-space:nowrap;">{_fmt_pct(mos_h)}</b></p>',
+                f'<div class="mos-row">'
+                f'<span>{T["mos_progress_lbl"]}</span>'
+                f'<span class="mos-pct" style="color:{mos_color};">{_fmt_pct(mos_h)}</span>'
+                f'</div>',
                 unsafe_allow_html=True,
             )
             bar_val = min(max((mos_h + 60) / 120, 0.0), 1.0)
@@ -1151,12 +1583,18 @@ else:
             sign  = "+" if alpha >= 0 else ""
             label = (T["outperform"] if alpha > 5
                      else (T["inline"] if alpha > -5 else T["underperform"]))
-            color = "#4ade80" if alpha > 5 else ("#facc15" if alpha > -5 else "#f87171")
+            a_color = ("var(--accent-green)" if alpha > 5
+                       else ("var(--accent-yellow)" if alpha > -5 else "var(--accent-red)"))
             st.markdown(
-                f"<div style='text-align:center; margin-top:8px;'>"
-                f"Alpha = <b style='color:{color}; font-size:1.15rem; white-space:nowrap;'>"
-                f"{sign}{alpha:.1f}%</b><br>"
-                f"<span style='color:#94a3b8; font-size:0.82rem;'>{label}</span></div>",
+                f"<div style='text-align:center;margin-top:12px;"
+                f"font-family:var(--mono-font);'>"
+                f"<div style='font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;"
+                f"color:var(--text-secondary);margin-bottom:4px;'>Alpha vs SPY</div>"
+                f"<div style='font-size:1.3rem;font-weight:700;color:{a_color};"
+                f"white-space:nowrap;'>{sign}{alpha:.1f}%</div>"
+                f"<div style='font-size:0.72rem;color:var(--text-secondary);"
+                f"margin-top:2px;'>{label}</div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
 
