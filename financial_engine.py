@@ -410,19 +410,37 @@ def calculate_metrics(data: dict) -> pd.DataFrame:
     all_series = [net_income, gross_profit, total_revenue, ebit,
                   equity, total_debt, cash, total_assets, tax_row, op_cf, capex]
     # 取所有非空 Series 的 index 交集（确保对齐）
+    # 注意：TTM 注入后 index 可能混合 Timestamp 与字符串，
+    # 统一转为字符串 Index 再做 intersection/union，避免类型比较崩溃
+    def _to_str_index(s: pd.Series) -> pd.Series:
+        s = s.copy()
+        s.index = [str(i)[:10] if not str(i).startswith("TTM") else str(i)
+                   for i in s.index]
+        return s
+
+    all_series = [_to_str_index(s) for s in all_series]
+    net_income, gross_profit, total_revenue, ebit, equity, total_debt, \
+        cash, total_assets, tax_row, op_cf, capex = all_series
+
     valid_indices = [s.index for s in all_series if not s.empty]
     if not valid_indices:
         return pd.DataFrame()
 
     common_cols = valid_indices[0]
     for idx in valid_indices[1:]:
-        common_cols = common_cols.intersection(idx)
+        try:
+            common_cols = common_cols.intersection(idx)
+        except Exception:
+            pass
 
     if common_cols.empty:
         # fallback：使用 union，允许 NaN
         common_cols = valid_indices[0]
         for idx in valid_indices[1:]:
-            common_cols = common_cols.union(idx)
+            try:
+                common_cols = common_cols.union(idx)
+            except Exception:
+                pass
 
     def align(s: pd.Series) -> pd.Series:
         return s.reindex(common_cols) if not s.empty else pd.Series(np.nan, index=common_cols)
@@ -588,21 +606,44 @@ def calculate_dcf_value(
             return result
 
         capex_abs = capex.abs() if not capex.empty else pd.Series(0, index=op_cf.index)
-        fcf_series = (op_cf - capex_abs).sort_index(ascending=True)
+        raw_fcf = op_cf - capex_abs
+
+        # TTM 注入后 index 混合 Timestamp + 字符串 → 分离再合并，避免 sort_index 崩溃
+        ttm_mask_fcf = pd.Series([str(i).startswith("TTM") for i in raw_fcf.index],
+                                 index=raw_fcf.index)
+        fcf_ttm  = raw_fcf[ttm_mask_fcf]        # TTM 行（最新，字符串索引）
+        fcf_norm = raw_fcf[~ttm_mask_fcf]       # 年报行（Timestamp 索引）
+
+        # 年报序列安全排序
+        try:
+            fcf_norm.index = pd.to_datetime(fcf_norm.index, errors="coerce")
+            fcf_norm = fcf_norm.sort_index(ascending=True)
+        except Exception:
+            pass
+
+        # 若有 TTM 行，作为最新一期追加到末尾；用于 base_fcf（不参与 CAGR 计算）
+        ttm_fcf_val = float(fcf_ttm.iloc[-1]) if not fcf_ttm.empty else None
+
+        # CAGR 仅用年报历史序列
+        fcf_series = fcf_norm.replace(0, np.nan).dropna()
 
         # 过滤极端异常值（绝对值为 0 或 NaN）
-        fcf_series = fcf_series.replace(0, np.nan).dropna()
         if len(fcf_series) < 2:
             result["error"] = "FCF 历史数据不足，无法计算增速"
             return result
 
-        # ── FCF 增速（CAGR）──────────────────
+        # ── FCF 增速（CAGR）——仅用年报历史数据 ──────────────────
         # 使用最近 5 年（或全部可用年）计算 CAGR
         fcf_vals = fcf_series.tail(5).values.astype(float)
         n_years  = len(fcf_vals) - 1
 
         first_fcf = fcf_vals[0]
         last_fcf  = fcf_vals[-1]
+
+        # base_fcf：若有 TTM 数据则用 TTM（最新），否则用年报最新值
+        base_fcf_for_dcf = ttm_fcf_val if (ttm_fcf_val is not None
+                                            and not np.isnan(ttm_fcf_val)
+                                            and ttm_fcf_val != 0) else last_fcf
 
         if first_fcf <= 0 or last_fcf <= 0:
             # 有负值时，改用算术平均年增量比率
@@ -616,14 +657,14 @@ def calculate_dcf_value(
         growth_rate = max(growth_rate, -0.20)  # 下限 -20%，防止崩溃预测
 
         result["fcf_growth_rate"] = growth_rate
-        result["base_fcf"]        = float(last_fcf)
+        result["base_fcf"]        = float(base_fcf_for_dcf)
 
         # ── 预测未来 10 年 FCF 并折现 ─────────
         # Two-Stage 模式：stage1_growth(yr1-5) + 线性过渡(yr6-10)
         # Single-Stage 模式：全程 growth_rate
         forecast_fcfs = []
         pv_fcfs       = []
-        base = float(last_fcf)
+        base = float(base_fcf_for_dcf)
         stage1 = stage1_growth if _two_stage else growth_rate
         # stage2 list: linear decline from stage2_growth_start → terminal_growth over yr6-10
         if _two_stage:
@@ -666,10 +707,28 @@ def calculate_dcf_value(
                         "Cash And Cash Equivalents And Short Term Investments", "Cash")
         debt_row = _row(bs, "TotalDebt", "Total Debt", "LongTermDebt", "Long Term Debt")
 
-        latest_cash = float(cash_row.sort_index().iloc[-1]) if not cash_row.empty else 0.0
-        latest_debt = float(debt_row.sort_index().iloc[-1]) if not debt_row.empty else 0.0
-        # 有时 debt 已含负号，取绝对值
-        latest_debt = abs(latest_debt)
+        def _latest_bs_val(row: pd.Series) -> float:
+            """取资产负债表 Series 最新值，安全处理 TTM/Timestamp 混合索引。"""
+            if row.empty:
+                return 0.0
+            # 优先取 TTM 行（最新），否则取按日期排序后的最后一个年报值
+            ttm_rows = row[[str(i).startswith("TTM") for i in row.index]]
+            if not ttm_rows.empty:
+                v = ttm_rows.iloc[-1]
+            else:
+                try:
+                    norm = row[[not str(i).startswith("TTM") for i in row.index]].copy()
+                    norm.index = pd.to_datetime(norm.index, errors="coerce")
+                    v = norm.sort_index().iloc[-1]
+                except Exception:
+                    v = row.iloc[-1]
+            try:
+                return float(v)
+            except Exception:
+                return 0.0
+
+        latest_cash = _latest_bs_val(cash_row)
+        latest_debt = abs(_latest_bs_val(debt_row))
 
         result["cash"]       = latest_cash
         result["total_debt"] = latest_debt
