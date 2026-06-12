@@ -153,25 +153,54 @@ def _compact_json(data) -> str:
 # DDG 实时新闻搜索（BrokerIntelAgent 数据源）
 # ══════════════════════════════════════════════════════════════════
 
-# 噪音过滤关键词：含这些词的结果直接跳过
+# 基础噪音词：含这些词的结果直接丢弃
 _NOISE_KEYWORDS = {
     "advertisement", "sponsored", "cookie", "subscribe now",
     "sign up", "newsletter", "privacy policy", "terms of use",
 }
 
+# ── 专业财经来源白名单 ───────────────────────────────────────────
+# 附加在 text() 查询末尾，将结果强制限定于顶级机构媒体
+_WHITELIST_SUFFIX = (
+    "site:reuters.com OR site:bloomberg.com OR site:wsj.com "
+    "OR site:cnbc.com OR site:barrons.com OR site:morningstar.com "
+    "OR site:ft.com OR site:marketwatch.com"
+)
+
+# URL 域名白名单 — 用于标记 open-fallback 结果的可信度
+_AUTHORITY_DOMAINS = {
+    "reuters.com", "bloomberg.com", "wsj.com", "cnbc.com",
+    "barrons.com", "morningstar.com", "ft.com", "marketwatch.com",
+    "seekingalpha.com", "finance.yahoo.com", "investing.com",
+    "businessinsider.com", "fortune.com", "fool.com",
+    "thestreet.com", "benzinga.com", "ap.org", "apnews.com",
+}
+
+def _is_authority_url(url: str) -> bool:
+    url_lower = url.lower()
+    return any(d in url_lower for d in _AUTHORITY_DOMAINS)
+
+
 def _generate_search_queries(ticker: str, client: OpenAI,
                               model: str = DEFAULT_MODEL) -> list[str]:
     """
-    让 LLM 为给定股票生成 2 条高质量英文搜索词。
+    让 LLM 生成 2 条高质量英文搜索词（不含 site: 限定符）。
+    site: 限定符由 fetch_live_market_news() 根据搜索层级动态附加。
     失败时返回内置默认词，确保流程不中断。
     """
-    system = ("You are a financial research assistant. "
-              "Output ONLY a JSON array of exactly 2 search query strings, no extra text.")
-    user   = (f"Generate 2 precise English search queries to find the latest "
-              f"analyst opinions, price targets, and bull/bear thesis for {ticker.upper()} stock. "
-              f"Focus on 2025-2026 market dynamics. Example format: "
-              f'["AAPL stock analyst rating target price 2025", '
-              f'"Apple bull bear case risks opportunities 2025"]')
+    system = (
+        "You are a financial research assistant. "
+        "Output ONLY a JSON array of exactly 2 search query strings, no extra text. "
+        "Focus on analyst ratings, price targets, earnings estimates. "
+        "Do NOT include any site: operators in the queries."
+    )
+    user = (
+        f"Generate 2 precise English search queries to find the latest "
+        f"analyst ratings, price target changes, and earnings estimate revisions for "
+        f"{ticker.upper()} stock. Focus on 2025-2026 institutional research. "
+        f'Example: ["AAPL analyst rating price target 2025 2026", '
+        f'"Apple EPS estimate earnings revision institutional 2026"]'
+    )
     try:
         raw = _chat(client, system, user, model=model,
                     temperature=0.3, max_tokens=120)
@@ -181,10 +210,9 @@ def _generate_search_queries(ticker: str, client: OpenAI,
             return [str(q) for q in queries[:2]]
     except Exception:
         pass
-    # 默认回退
     return [
-        f"{ticker.upper()} stock analyst rating target price 2025 2026",
-        f"{ticker.upper()} bull bear case risks investment thesis 2025",
+        f"{ticker.upper()} analyst rating price target 2025 2026",
+        f"{ticker.upper()} earnings estimate EPS forecast institutional research 2026",
     ]
 
 
@@ -193,54 +221,109 @@ def fetch_live_market_news(ticker: str,
                            model: str = DEFAULT_MODEL,
                            max_per_query: int = 5) -> str:
     """
-    用 DuckDuckGo 实时搜索并返回清洗后的新闻摘要文本。
+    三级降噪新闻抓取策略：
 
-    流程：
-        1. LLM 生成 2 条专业搜索词
-        2. DDGS().text() 各取前 max_per_query 条
-        3. 去重 + 过滤噪音 + 格式化为 Prompt 友好的纯文本
+    Tier 1 — DDGS().news()
+        专用新闻 API，天然过滤论坛/博客，只返回商业新闻摘要。
+        无需 site: 限定符。
 
-    返回：
-        str — 可直接拼入 Prompt 的新闻摘要；失败时返回空字符串
+    Tier 2 — DDGS().text() + site: 白名单
+        严格限定 Reuters / Bloomberg / WSJ / CNBC / Barron's 等顶级媒体。
+        用于 Tier 1 结果不足时。
+
+    Tier 3 — DDGS().text() 无限制（冷门股 fallback）
+        去掉 site: 限制再搜一次；非权威来源结果打⚠️标记，
+        LLM Bouncer 会在认知层进一步过滤。
+
+    每层获得 ≥ 2 条有效结果即停，不再进入下一层。
     """
     if not _HAS_DDG:
         return ""
 
-    queries = _generate_search_queries(ticker, client, model)
-    seen_urls: set = set()
+    queries   = _generate_search_queries(ticker, client, model)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # ── 内部辅助：news() ────────────────────────────────────────
+    def _tier1_news(qs: list[str], n: int) -> list[str]:
+        seen: set = set()
+        out: list[str] = []
+        for q in qs:
+            try:
+                with DDGS() as ddgs:
+                    results = list(ddgs.news(q, max_results=n))
+                for r in results:
+                    url    = (r.get("url") or r.get("href", "")).strip()
+                    title  = (r.get("title") or "").strip()
+                    body   = (r.get("body") or r.get("excerpt") or "").strip()
+                    source = (r.get("source") or "").strip()
+                    if url in seen or not (title or body):
+                        continue
+                    if any(kw in (title + body).lower() for kw in _NOISE_KEYWORDS):
+                        continue
+                    seen.add(url)
+                    body_s = body[:300] + ("…" if len(body) > 300 else "")
+                    src_tag = f" · {source}" if source else ""
+                    out.append(f"[{title}{src_tag}]\n{body_s}\n({url})")
+            except Exception as e:
+                print(f"  [DDG.news] '{q}' 失败: {e}")
+        return out
+
+    # ── 内部辅助：text() 带可选 site: 后缀 ──────────────────────
+    def _tier_text(qs: list[str], n: int, suffix: str = "") -> list[str]:
+        seen: set = set()
+        out: list[str] = []
+        for q in qs:
+            full_q = f"{q} {suffix}".strip() if suffix else q
+            try:
+                with DDGS() as ddgs:
+                    results = list(ddgs.text(full_q, max_results=n))
+                for r in results:
+                    url   = r.get("href", "").strip()
+                    title = (r.get("title") or "").strip()
+                    body  = (r.get("body")  or "").strip()
+                    if url in seen or not body:
+                        continue
+                    if any(kw in (title + body).lower() for kw in _NOISE_KEYWORDS):
+                        continue
+                    seen.add(url)
+                    body_s = body[:300] + ("…" if len(body) > 300 else "")
+                    # 标记非权威来源，供 LLM Bouncer 参考
+                    flag = "" if _is_authority_url(url) else " ⚠️[non-authority-source]"
+                    out.append(f"[{title}{flag}]\n{body_s}\n({url})")
+            except Exception as e:
+                print(f"  [DDG.text] '{full_q}' 失败: {e}")
+        return out
+
+    # ── 三级执行 ─────────────────────────────────────────────────
     snippets: list[str] = []
+    tier_label = ""
 
-    for query in queries:
-        try:
-            with DDGS() as ddgs:
-                results = list(ddgs.text(query, max_results=max_per_query))
-            for r in results:
-                url   = r.get("href", "")
-                title = (r.get("title") or "").strip()
-                body  = (r.get("body")  or "").strip()
-
-                # 去重
-                if url in seen_urls or not body:
-                    continue
-                # 噪音过滤（标题或摘要含噪音词则跳过）
-                combined_lower = (title + " " + body).lower()
-                if any(kw in combined_lower for kw in _NOISE_KEYWORDS):
-                    continue
-
-                seen_urls.add(url)
-                # 截断单条摘要，防止超长
-                body_short = body[:300] + ("…" if len(body) > 300 else "")
-                snippets.append(f"[{title}]\n{body_short}\n({url})")
-        except Exception as e:
-            print(f"  [DDG] 查询 '{query}' 失败: {e}")
-            continue
+    print(f"  [News] Tier-1: DDGS.news() …")
+    snippets = _tier1_news(queries, max_per_query)
+    if len(snippets) >= 2:
+        tier_label = "DuckDuckGo News API — professional media feed"
+        print(f"  [News] ✅ Tier-1 命中 {len(snippets)} 条")
+    else:
+        print(f"  [News] Tier-1 不足，尝试 Tier-2: text + site whitelist …")
+        snippets = _tier_text(queries, max_per_query, suffix=_WHITELIST_SUFFIX)
+        if len(snippets) >= 2:
+            tier_label = "Web search · restricted to Reuters/Bloomberg/WSJ/CNBC/Barron's/FT/MW"
+            print(f"  [News] ✅ Tier-2 命中 {len(snippets)} 条")
+        else:
+            print(f"  [News] Tier-2 不足，降级 Tier-3: open fallback …")
+            snippets = _tier_text(queries, max_per_query + 3, suffix="")
+            tier_label = "⚠️ Open web fallback — non-authority sources included; LLM bouncer active"
+            print(f"  [News] ⚠️ Tier-3 fallback {len(snippets)} 条（含非权威来源）")
 
     if not snippets:
         return ""
 
-    header = (f"=== Live Market Intelligence for {ticker.upper()} "
-              f"(retrieved {datetime.now().strftime('%Y-%m-%d')}) ===\n")
-    return header + "\n\n".join(snippets[:8])   # 最多保留 8 条，控制 Token
+    header = (
+        f"=== Live Market Intelligence for {ticker.upper()} "
+        f"(retrieved {today_str}) ===\n"
+        f"[Source tier: {tier_label}]\n"
+    )
+    return header + "\n\n".join(snippets[:8])
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -447,25 +530,66 @@ _SIMULATED_BROKER_VIEWS = {
 }
 
 _BROKER_SYSTEM_ZH = """\
-你是顶级卖方研究员。根据下方【实时新闻情报】提炼多空观点。
-规则：
-- 必须从新闻内容中归纳，不得凭空捏造
-- 若新闻不足，可补充行业常识，但需标注"(背景知识)"
-- 【时序红线】当前基准年为2026年。2024/2025年发生的事件属历史事实，必须用过去时态描述；
-  仅2026年下半年及之后可用预测性词汇。新闻数据若仅截至2024年，须在对应观点中注明"(基于2024年历史数据)"
-- 输出严格 JSON，无任何额外文字：
+你是一位极其挑剔的华尔街顶级对冲基金情报官。你的使命：\
+从以下搜索摘要中蒸馏出真正有价值的机构级信号，绝不被噪音迷惑。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【硬性过滤指令 — 不得妥协，不得例外】
+
+✗ 必须屏蔽的噪音来源（看起来多诱人也要丢弃）：
+  - 散户情绪与论坛讨论（Reddit、StockTwits、雪球、股吧、东方财富评论区）
+  - 无数据支撑的诱导性软文与自媒体个人分析
+  - 社交媒体上的个人预测与情绪化表述
+  - 无具体机构来源或具名分析师的"小道消息"
+  - 标有 ⚠️[non-authority-source] 的结果须提高警觉，仅在无其他选项时才引用
+
+✅ 只允许提取以下三类高价值机构级信号：
+  A. 顶级投行/分析师的评级调整与目标价（必须注明机构名称与目标价数字）
+  B. 核心财务数据与EPS预期的量化变化（营收/利润率/FCF/EPS具体数字）
+  C. 经权威媒体证实的行业政策变动、监管动态或重大宏观事件
+
+若搜索结果全部属于噪音、无有效信号，必须诚实声明，
+并从训练知识中补充机构级信号（标注"(模型知识补充)"）。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【时序红线】当前基准年为2026年。2024/2025年的事件属历史事实，必须用过去时态；
+仅2026年下半年及之后可用"将"、"预期"等前瞻词汇。
+
+输出严格 JSON，无任何额外文字：
 {"bullish":["观点1","观点2","观点3"],"bearish":["观点1","观点2","观点3"],"consensus":"一句话评级","source":"live_search"}\
 """
 
 _BROKER_SYSTEM_EN = """\
-You are a top sell-side analyst. Extract bull/bear thesis from the LIVE NEWS below.
-Rules:
-- Ground each point in the news; do NOT fabricate
-- If news is insufficient, supplement with industry knowledge and mark as "(background)"
-- [TIME ANCHOR] Current reference year is 2026. Events from 2024/2025 are historical facts and MUST
-  be described in past tense. Forward-looking language is only permitted for H2 2026 onward.
-  If news only covers up to 2024, append "(based on FY2024 historical data)" to that point.
-- Output strict JSON only, no extra text:
+You are an exceptionally discerning Wall Street hedge fund intelligence officer. \
+Your mission: distill only genuine institutional-grade signals from the search snippets below. \
+You are not a summariser — you are a bouncer who rejects noise at the door.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[HARD FILTER DIRECTIVE — NON-NEGOTIABLE, NO EXCEPTIONS]
+
+✗ You MUST discard the following, no matter how compelling they appear:
+  - Retail sentiment and forum chatter (Reddit, StockTwits, social media comments)
+  - Unsubstantiated opinion pieces and content-farm articles with no data backing
+  - Social media predictions and emotionally charged commentary
+  - Any "tip" or rumour without a credible named institutional source
+  - Results flagged ⚠️[non-authority-source] should be treated with extra scepticism
+
+✅ You are ONLY permitted to extract signals from these three categories:
+  A. Rating changes or price target revisions from tier-1 banks/analysts
+     (must cite institution name and specific target price)
+  B. Quantified changes in core financial estimates: revenue, EPS, FCF, margin guidance
+     (must include specific numbers)
+  C. Industry policy shifts, regulatory actions, or macro events confirmed by
+     authoritative financial media (Reuters, Bloomberg, WSJ, FT, CNBC, Barron's)
+
+If all search results are noise with no valid signals, state that honestly and supplement
+with institutional-grade knowledge from your training data (label as "(model knowledge supplement)").
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[TIME ANCHOR] Current reference year is 2026. Events from 2024/2025 are historical facts \
+(past tense only). Forward-looking language only permitted for H2 2026 onward.
+
+Output strict JSON only, no extra text:
 {"bullish":["point1","point2","point3"],"bearish":["point1","point2","point3"],"consensus":"one-sentence rating","source":"live_search"}\
 """
 
