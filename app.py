@@ -111,6 +111,12 @@ footer    { display: none !important; }
     border-right: 1px solid var(--border) !important;
 }
 
+/* Hide native sidebar header — it renders "keyboard_double_arrow_left"
+   as visible text when our monospace override breaks Material Symbols. */
+[data-testid="stSidebarHeader"] {
+    display: none !important;
+}
+
 /* ── Main panel ─────────────────────────────────────────────────── */
 /* Header 仍在 DOM 中占位（高度约 3rem），内容从 header 下方自然开始 */
 [data-testid="stMainBlockContainer"] {
@@ -120,12 +126,37 @@ footer    { display: none !important; }
 
 /* ── Sidebar 内容顶部留白 ────────────────────────────────────────── */
 [data-testid="stSidebar"] > div:first-child {
-    padding-top: 1rem !important;
+    padding-top: 0.5rem !important;
+}
+
+/* ── Sidebar custom brand logo ──────────────────────────────────── */
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+.sidebar-brand-icon { font-size: 1.4rem; line-height: 1; }
+.sidebar-brand-text {
+    font-family: var(--mono) !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: var(--text-primary) !important;
+    line-height: 1.4;
 }
 
 /* ── Typography ─────────────────────────────────────────────────── */
+/* NOTE: <span> is intentionally excluded here. Spans inherit from their
+   parent div/button (which does carry the monospace override), so our
+   UI text stays monospace. But Material Symbols icon spans — which
+   carry their own class-level font-family rule — can now correctly
+   override the inherited value and render as glyphs, not raw text.   */
 html, body,
-p, li, span, div, label, td, th, button,
+p, li, div, label, td, th, button,
 .stMarkdown, .stText, .stCaption, [class*="css"] {
     font-family: var(--mono) !important;
     -webkit-font-smoothing: antialiased;
@@ -487,9 +518,19 @@ hr { border: none !important; border-top: 1px solid var(--border) !important; ma
     border-radius: 6px !important;
 }
 [data-testid="stExpander"] summary {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
     font-family: var(--mono) !important;
     font-size: 0.78rem !important;
     color: var(--text-secondary) !important;
+}
+/* Keep expander toggle icon at fixed width so it doesn't bleed into title */
+[data-testid="stExpander"] summary svg,
+[data-testid="stExpanderToggleIcon"] {
+    flex-shrink: 0 !important;
+    width: 1rem !important;
+    height: 1rem !important;
 }
 
 /* ── Sidebar widget labels ──────────────────────────────────────── */
@@ -822,6 +863,16 @@ _I18N = {
 # 侧边栏（语言切换必须最先渲染）
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
+    # Custom brand replaces the native sidebar header (which shows garbled Material Icon text)
+    st.markdown(
+        '<div class="sidebar-brand">'
+        '<span class="sidebar-brand-icon">📊</span>'
+        '<span class="sidebar-brand-text">Ask Buffett &amp; Dalio<br>'
+        '<span style="font-weight:400;opacity:0.6;">问巴菲特与达利欧</span></span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
     # Language toggle — always first so T is available everywhere below
     lang = st.radio(
         "Language / 语言",
