@@ -1332,14 +1332,19 @@ if not is_backtest:
 
     if metrics_df is not None and not metrics_df.empty:
         with st.expander(T["trend_expand"], expanded=False):
-            st.dataframe(
-                metrics_df.style.format({
-                    "ROE (%)": "{:.1f}%", "ROIC (%)": "{:.1f}%",
-                    "Gross Margin (%)": "{:.1f}%",
-                    "FCF ($M)": "{:,.0f}", "D/E Ratio": "{:.2f}x",
-                }).background_gradient(cmap="RdYlGn", axis=None),
-                use_container_width=True,
-            )
+            fmt = {
+                "ROE (%)": "{:.1f}%", "ROIC (%)": "{:.1f}%",
+                "Gross Margin (%)": "{:.1f}%",
+                "FCF ($M)": "{:,.0f}", "D/E Ratio": "{:.2f}x",
+            }
+            try:
+                # background_gradient requires matplotlib — graceful fallback
+                styled = metrics_df.style.format(fmt).background_gradient(
+                    cmap="RdYlGn", axis=None
+                )
+                st.dataframe(styled, use_container_width=True)
+            except Exception:
+                st.dataframe(metrics_df.style.format(fmt), use_container_width=True)
 
     st.divider()
 
@@ -1548,14 +1553,18 @@ else:
             _kpi(T["fcf_label"], fcf_h_str)
 
         with st.expander(f"📅 {backtest_year} {T['trend_expand']}", expanded=False):
-            st.dataframe(
-                hist_metrics_df.style.format({
-                    "ROE (%)": "{:.1f}%", "ROIC (%)": "{:.1f}%",
-                    "Gross Margin (%)": "{:.1f}%",
-                    "FCF ($M)": "{:,.0f}", "D/E Ratio": "{:.2f}x",
-                }).background_gradient(cmap="RdYlGn", axis=None),
-                use_container_width=True,
-            )
+            _hfmt = {
+                "ROE (%)": "{:.1f}%", "ROIC (%)": "{:.1f}%",
+                "Gross Margin (%)": "{:.1f}%",
+                "FCF ($M)": "{:,.0f}", "D/E Ratio": "{:.2f}x",
+            }
+            try:
+                styled_h = hist_metrics_df.style.format(_hfmt).background_gradient(
+                    cmap="RdYlGn", axis=None
+                )
+                st.dataframe(styled_h, use_container_width=True)
+            except Exception:
+                st.dataframe(hist_metrics_df.style.format(_hfmt), use_container_width=True)
     else:
         st.info(f"⚠️ {T['bt_insuf']}")
 
