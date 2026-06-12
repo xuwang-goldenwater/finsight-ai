@@ -1254,7 +1254,9 @@ st.markdown(
 st.divider()
 
 # ── 等待按钮 ─────────────────────────────────────────────────────
-if not run_btn:
+# Allow chat reruns to bypass the gate when analysis was already completed for this ticker
+_analysis_done = st.session_state.get("_analysis_done_ticker") == ticker_input
+if not run_btn and not _analysis_done:
     st.info(T["prompt_info"], icon="💡")
     st.stop()
 
@@ -1265,9 +1267,14 @@ if not ticker_input:
 # 每次用户触发新分析时，清除旧 Agent 预测，防止跨 ticker 残留
 _prev_ticker = st.session_state.get("_last_ticker", "")
 if ticker_input != _prev_ticker:
-    for _k in ("_stage1_growth", "_stage2_growth_start", "_updated_dcf"):
+    for _k in ("_stage1_growth", "_stage2_growth_start", "_updated_dcf", "_analysis_done_ticker"):
         st.session_state.pop(_k, None)
     st.session_state["_last_ticker"] = ticker_input
+
+# Persist the "analysis was run" flag so chat reruns skip the gate above
+if run_btn:
+    st.session_state["_analysis_done_ticker"] = ticker_input
+_analysis_done = st.session_state.get("_analysis_done_ticker") == ticker_input
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1733,7 +1740,7 @@ _has_analysis = bool(
 )
 
 # 即使 Agent 还未跑完，只要有 ticker 数据就允许对话
-_chat_ready = run_btn and ticker_input
+_chat_ready = (run_btn or _analysis_done) and ticker_input
 
 if not _chat_ready:
     st.info(T["chat_no_data"], icon="💡")
