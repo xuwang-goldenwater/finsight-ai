@@ -262,16 +262,22 @@ def _resolve_latest_date(data: dict) -> str:
     q_cf_date    = _col_date(data.get("quarterly_cashflow"))
     q_bs_date    = _col_date(data.get("quarterly_balance"))
 
-    # 选取最新季报日期
-    quarterly_dates = [d for d in [q_inc_date, q_cf_date, q_bs_date] if d is not None]
+    # 过滤掉 None 和 NaT，保留有效 Timestamp
+    def _valid_ts(d):
+        try:
+            return d is not None and not pd.isnull(d)
+        except Exception:
+            return False
+
+    quarterly_dates = [d for d in [q_inc_date, q_cf_date, q_bs_date] if _valid_ts(d)]
     latest_q_date   = max(quarterly_dates) if quarterly_dates else None
 
     # 基准截止日期：默认用年报
     cutoff_date = annual_date
 
     # 如果年报落后 ≥1 年，且季报更新 → 合成 TTM 并更新截止日期
-    if (annual_date is not None
-            and latest_q_date is not None
+    if (_valid_ts(annual_date)
+            and _valid_ts(latest_q_date)
             and annual_date.year < current_year
             and latest_q_date > annual_date):
 
@@ -459,19 +465,36 @@ def calculate_metrics(data: dict) -> pd.DataFrame:
     })
 
     # 按时间升序排列，取最近 5 年（含 TTM 列如果存在）
-    # TTM 列的列名形如 'TTM (2025-09-30)'，需排在最后不参与 tail 截断
-    ttm_cols  = [c for c in metrics.columns if str(c).startswith("TTM")]
-    norm_cols = [c for c in metrics.columns if not str(c).startswith("TTM")]
+    # metrics 的 index 是日期（Timestamp 或 TTM 字符串）
+    # TTM 行的 index 形如 'TTM (2025-09-30)'，不能与 Timestamp 混合排序
+    str_idx    = [str(i) for i in metrics.index]
+    ttm_mask   = [s.startswith("TTM") for s in str_idx]
+    norm_mask  = [not b for b in ttm_mask]
 
-    if ttm_cols:
-        # 先对非 TTM 列排序并取最近 4 年，再拼接 TTM 列
-        metrics_norm = metrics[norm_cols].sort_index(ascending=True).tail(4)
-        metrics_ttm  = metrics[ttm_cols]
+    has_ttm = any(ttm_mask)
+
+    if has_ttm:
+        # 分离 TTM 行与普通年份行，各自操作后再拼接
+        metrics_norm = metrics.iloc[[i for i, b in enumerate(norm_mask) if b]].copy()
+        metrics_ttm  = metrics.iloc[[i for i, b in enumerate(ttm_mask)  if b]].copy()
+
+        # 普通行：强制转换为 DatetimeIndex 再排序，避免混合类型比较
+        try:
+            metrics_norm.index = pd.to_datetime(metrics_norm.index, errors="coerce")
+            metrics_norm = metrics_norm.sort_index(ascending=True).tail(4)
+        except Exception:
+            metrics_norm = metrics_norm.tail(4)
+
         metrics = pd.concat([metrics_norm, metrics_ttm])
     else:
-        metrics = metrics.sort_index(ascending=True).tail(5)
+        # 无 TTM：全部转为 DatetimeIndex 排序
+        try:
+            metrics.index = pd.to_datetime(metrics.index, errors="coerce")
+            metrics = metrics.sort_index(ascending=True).tail(5)
+        except Exception:
+            metrics = metrics.tail(5)
 
-    # 规范化索引：日期取前 10 字符，TTM 标签保留原样
+    # 统一规范化为字符串索引：日期取前 10 字符，TTM 标签保留原样
     metrics.index = [
         str(d) if str(d).startswith("TTM") else str(d)[:10]
         for d in metrics.index
