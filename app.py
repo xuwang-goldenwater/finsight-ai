@@ -680,7 +680,7 @@ _I18N = {
         "mos_canvas":        "🎯 安全边际画布",
         "market_price":      "当前股价 · Market Price",
         "intrinsic_label":   "AI 内在价值 · Intrinsic Value",
-        "mos_progress_lbl":  "安全边际 Margin of Safety",
+        "mos_progress_lbl":  "安全边际",
         "dcf_params":        "DCF 模型参数",
         "wacc_label":        "折现率 · WACC",
         "term_g_label":      "永续增长 · Terminal g",
@@ -1165,22 +1165,18 @@ def _kpi(label: str, value: str, col=None):
 def _price_row(market_price: str, intrinsic_value: str,
                price_label: str, iv_label: str):
     """
-    MoS canvas price pair — two equal columns via st.columns.
-    No HTML flexbox; avoids stripe-overlap with st.progress.
+    MoS canvas price pair — two cards stacked vertically (full-width),
+    so labels never truncate in the narrow left column.
     """
-    ca, cb = st.columns(2, gap="small")
-    ca.markdown(
-        '<div class="price-card">'
+    st.markdown(
+        f'<div class="price-card" style="margin-bottom:8px;">'
         f'<span class="price-card-label">{price_label}</span>'
         f'<span class="price-card-value">{market_price}</span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-    cb.markdown(
-        '<div class="price-card">'
+        f'</div>'
+        f'<div class="price-card">'
         f'<span class="price-card-label">{iv_label}</span>'
         f'<span class="price-card-value intrinsic">{intrinsic_value}</span>'
-        '</div>',
+        f'</div>',
         unsafe_allow_html=True,
     )
 
