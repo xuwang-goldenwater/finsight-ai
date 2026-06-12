@@ -342,21 +342,43 @@ def _build_ttm_column(annual_df: "pd.DataFrame",
         return None
 
 
+def _normalise_series_index(s: pd.Series) -> pd.Series:
+    """
+    Normalize a Series index to plain strings so that downstream
+    sort_index() / intersection() never encounters a Timestamp vs str
+    comparison (which raises TypeError on Python 3.10+).
+
+    TTM labels like 'TTM (2025-12-31)' are kept verbatim.
+    All other labels (Timestamps or date strings) are truncated to
+    'YYYY-MM-DD' (10 chars).
+    """
+    s = s.copy()
+    s.index = [
+        str(i) if str(i).startswith("TTM") else str(i)[:10]
+        for i in s.index
+    ]
+    return s
+
+
 def _row(df: pd.DataFrame, *candidates) -> pd.Series:
     """
-    在 DataFrame（列=年份）中按候选行名依次尝试，返回第一个找到的 Series。
-    找不到则返回全 NaN Series。
+    Search a DataFrame (columns = dates) for the first matching row name
+    and return it as a numeric Series with a normalised string index.
+    Returns an empty Series if nothing is found.
     """
     if df is None or df.empty:
         return pd.Series(dtype=float)
     for name in candidates:
-        # 精确匹配
+        # exact match
         if name in df.index:
-            return df.loc[name].apply(pd.to_numeric, errors="coerce")
-        # 模糊匹配（忽略大小写 & 空格）
-        matched = [i for i in df.index if name.lower().replace(" ", "") in i.lower().replace(" ", "")]
+            s = df.loc[name].apply(pd.to_numeric, errors="coerce")
+            return _normalise_series_index(s)
+        # fuzzy match (case/space insensitive)
+        matched = [i for i in df.index
+                   if name.lower().replace(" ", "") in i.lower().replace(" ", "")]
         if matched:
-            return df.loc[matched[0]].apply(pd.to_numeric, errors="coerce")
+            s = df.loc[matched[0]].apply(pd.to_numeric, errors="coerce")
+            return _normalise_series_index(s)
     return pd.Series(dtype=float)
 
 
@@ -608,23 +630,19 @@ def calculate_dcf_value(
         capex_abs = capex.abs() if not capex.empty else pd.Series(0, index=op_cf.index)
         raw_fcf = op_cf - capex_abs
 
-        # TTM 注入后 index 混合 Timestamp + 字符串 → 分离再合并，避免 sort_index 崩溃
-        ttm_mask_fcf = pd.Series([str(i).startswith("TTM") for i in raw_fcf.index],
-                                 index=raw_fcf.index)
-        fcf_ttm  = raw_fcf[ttm_mask_fcf]        # TTM 行（最新，字符串索引）
-        fcf_norm = raw_fcf[~ttm_mask_fcf]       # 年报行（Timestamp 索引）
+        # Index is now uniformly strings (guaranteed by _row/_normalise_series_index).
+        # Split TTM rows from annual rows — TTM is used as base_fcf; CAGR uses annuals only.
+        ttm_mask   = [str(i).startswith("TTM") for i in raw_fcf.index]
+        fcf_ttm    = raw_fcf[[b for b in ttm_mask]]          # TTM row(s)
+        fcf_norm   = raw_fcf[[not b for b in ttm_mask]]      # annual rows
 
-        # 年报序列安全排序
-        try:
-            fcf_norm.index = pd.to_datetime(fcf_norm.index, errors="coerce")
-            fcf_norm = fcf_norm.sort_index(ascending=True)
-        except Exception:
-            pass
+        # Sort annual rows — all string indices now, safe to sort alphabetically (ISO dates)
+        fcf_norm = fcf_norm.sort_index(ascending=True)
 
-        # 若有 TTM 行，作为最新一期追加到末尾；用于 base_fcf（不参与 CAGR 计算）
+        # TTM value used as base_fcf if available (most recent data point)
         ttm_fcf_val = float(fcf_ttm.iloc[-1]) if not fcf_ttm.empty else None
 
-        # CAGR 仅用年报历史序列
+        # CAGR computed on annual history only
         fcf_series = fcf_norm.replace(0, np.nan).dropna()
 
         # 过滤极端异常值（绝对值为 0 或 NaN）
@@ -708,20 +726,16 @@ def calculate_dcf_value(
         debt_row = _row(bs, "TotalDebt", "Total Debt", "LongTermDebt", "Long Term Debt")
 
         def _latest_bs_val(row: pd.Series) -> float:
-            """取资产负债表 Series 最新值，安全处理 TTM/Timestamp 混合索引。"""
+            """Return the most recent balance-sheet value.
+            Index is uniformly strings (from _row). TTM row preferred;
+            otherwise take the last entry of alphabetically sorted annual rows."""
             if row.empty:
                 return 0.0
-            # 优先取 TTM 行（最新），否则取按日期排序后的最后一个年报值
-            ttm_rows = row[[str(i).startswith("TTM") for i in row.index]]
-            if not ttm_rows.empty:
-                v = ttm_rows.iloc[-1]
+            ttm = row[[str(i).startswith("TTM") for i in row.index]]
+            if not ttm.empty:
+                v = ttm.iloc[-1]
             else:
-                try:
-                    norm = row[[not str(i).startswith("TTM") for i in row.index]].copy()
-                    norm.index = pd.to_datetime(norm.index, errors="coerce")
-                    v = norm.sort_index().iloc[-1]
-                except Exception:
-                    v = row.iloc[-1]
+                v = row.sort_index().iloc[-1]   # ISO strings sort correctly
             try:
                 return float(v)
             except Exception:
