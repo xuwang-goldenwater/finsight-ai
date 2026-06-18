@@ -675,6 +675,21 @@ _I18N = {
         "gm_strong":         "护城河","gm_mid":  "一般",  "gm_weak": "偏低",
         "de_low":            "低杠杆","de_mid":  "中等",  "de_high": "高杠杆",
         "fcf_pos":           "正",    "fcf_neg": "负",
+        "ps_label":          "P/S · 市销率",
+        "dil_label":         "稀释率",
+        "ps_cheap":          "低估",  "ps_fair": "合理",  "ps_rich": "偏贵",
+        "dil_low":           "低稀释","dil_mid": "中等",  "dil_high":"高稀释",
+        "bench_title":       "📈 历史回报对比（vs 标普500 · SPY）",
+        "bench_spin":        "加载历史对比数据…",
+        "bench_since_ipo":   "上市至今",
+        "bench_1yr":         "近 1 年",
+        "bench_3yr":         "近 3 年",
+        "bench_5yr":         "近 5 年",
+        "bench_10yr":        "近 10 年",
+        "bench_ticker_col":  "股票回报",
+        "bench_spy_col":     "SPY 回报",
+        "bench_alpha_col":   "超额收益",
+        "bench_ipo_note":    "基准日",
         "trend_expand":      "📅 近 5 年指标趋势",
         # MoS
         "mos_canvas":        "🎯 安全边际画布",
@@ -788,6 +803,21 @@ _I18N = {
         "gm_strong":         "Moat",   "gm_mid":  "Moderate", "gm_weak": "Low",
         "de_low":            "Low Lev","de_mid":  "Mid",       "de_high": "High Lev",
         "fcf_pos":           "Positive","fcf_neg": "Negative",
+        "ps_label":          "P/S · Price-to-Sales",
+        "dil_label":         "Dilution",
+        "ps_cheap":          "Cheap",  "ps_fair": "Fair",    "ps_rich": "Expensive",
+        "dil_low":           "Low",    "dil_mid": "Moderate","dil_high":"High",
+        "bench_title":       "📈 Historical Return vs S&P 500 (SPY)",
+        "bench_spin":        "Loading benchmark data…",
+        "bench_since_ipo":   "Since IPO",
+        "bench_1yr":         "1 Year",
+        "bench_3yr":         "3 Years",
+        "bench_5yr":         "5 Years",
+        "bench_10yr":        "10 Years",
+        "bench_ticker_col":  "Stock Return",
+        "bench_spy_col":     "SPY Return",
+        "bench_alpha_col":   "Alpha",
+        "bench_ipo_note":    "Base date",
         "trend_expand":      "📅 5-Year Metrics Trend",
         "mos_canvas":        "🎯 Margin of Safety",
         "market_price":      "Market Price",
@@ -1007,6 +1037,17 @@ def load_company_info(ticker: str) -> dict:
         return merged
     except Exception:
         return {}
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def load_benchmark(ticker: str) -> dict:
+    fe, _, _, err = _import_backends()
+    if err:
+        return {"error": err}
+    try:
+        return fe.fetch_benchmark_comparison(ticker)
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @st.cache_data(show_spinner=False, ttl=3600)
@@ -1384,21 +1425,79 @@ if not is_backtest:
                    else (f"${fcf:,.0f}M" if fcf is not None else "N/A"))
         _kpi(T["fcf_label"], fcf_str)
 
+    # ── P/S 与稀释率 — 第二行 KPI ────────────────────────────────
+    ps_val  = _latest_metric(metrics_df, "P/S")
+    dil_val = _latest_metric(metrics_df, "Dilution (%)")
+    if ps_val is not None or dil_val is not None:
+        cd1, cd2 = st.columns(2)
+        if ps_val is not None:
+            ps_delta = (T["ps_cheap"] if ps_val < 3
+                        else (T["ps_fair"] if ps_val < 8 else T["ps_rich"]))
+            cd1.metric(T["ps_label"], f"{ps_val:.1f}x",
+                       delta=ps_delta,
+                       delta_color=("normal" if ps_val < 3 else
+                                    ("off" if ps_val < 8 else "inverse")),
+                       help="Market Cap / Revenue. Lower = cheaper relative to sales.")
+        if dil_val is not None:
+            dil_delta = (T["dil_low"] if dil_val < 2
+                         else (T["dil_mid"] if dil_val < 5 else T["dil_high"]))
+            cd2.metric(T["dil_label"], f"{dil_val:.1f}%",
+                       delta=dil_delta,
+                       delta_color=("normal" if dil_val < 2 else
+                                    ("off" if dil_val < 5 else "inverse")),
+                       help="(Diluted shares − Basic shares) / Basic shares. Lower = less shareholder dilution.")
+
     if metrics_df is not None and not metrics_df.empty:
         with st.expander(T["trend_expand"], expanded=False):
             fmt = {
                 "ROE (%)": "{:.1f}%", "ROIC (%)": "{:.1f}%",
                 "Gross Margin (%)": "{:.1f}%",
                 "FCF ($M)": "{:,.0f}", "D/E Ratio": "{:.2f}x",
+                "P/S": "{:.1f}x", "Dilution (%)": "{:.1f}%",
             }
             try:
-                # background_gradient requires matplotlib — graceful fallback
                 styled = metrics_df.style.format(fmt).background_gradient(
                     cmap="RdYlGn", axis=None
                 )
                 st.dataframe(styled, use_container_width=True)
             except Exception:
                 st.dataframe(metrics_df.style.format(fmt), use_container_width=True)
+
+    # ── 历史回报对比（vs SPY）─────────────────────────────────────
+    st.markdown(f"### {T['bench_title']}")
+    with st.spinner(T["bench_spin"]):
+        _bench = load_benchmark(ticker_input)
+
+    if not _bench.get("error"):
+        _horizon_keys  = ["since_ipo", "1yr", "3yr", "5yr", "10yr"]
+        _horizon_labels = {
+            "since_ipo": T["bench_since_ipo"],
+            "1yr":       T["bench_1yr"],
+            "3yr":       T["bench_3yr"],
+            "5yr":       T["bench_5yr"],
+            "10yr":      T["bench_10yr"],
+        }
+        _rows = []
+        for _k in _horizon_keys:
+            if _k not in _bench:
+                continue
+            _d = _bench[_k]
+            _tk_r  = _d.get("ticker_return")
+            _bm_r  = _d.get("benchmark_return")
+            _alpha = _d.get("alpha")
+            _label = _horizon_labels[_k]
+            if _k == "since_ipo":
+                _label += f"  ({_bench.get('ipo_date','')})"
+            _rows.append({
+                T["bench_ticker_col"]: f"{_tk_r:+.1f}%" if _tk_r is not None else "N/A",
+                T["bench_spy_col"]:    f"{_bm_r:+.1f}%" if _bm_r is not None else "N/A",
+                T["bench_alpha_col"]:  f"{_alpha:+.1f}%" if _alpha is not None else "N/A",
+            })
+        if _rows:
+            _bench_df = pd.DataFrame(_rows,
+                                     index=[_horizon_labels[k]
+                                            for k in _horizon_keys if k in _bench])
+            st.dataframe(_bench_df, use_container_width=True)
 
     st.divider()
 

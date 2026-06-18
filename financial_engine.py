@@ -496,12 +496,35 @@ def calculate_metrics(data: dict) -> pd.DataFrame:
 
     de_ratio = total_debt / equity.replace(0, np.nan)
 
+    # ── P/S 市销率（当前市值 / 历史各年营收）──────────────────────
+    _info       = data.get("info", {})
+    _price_info = float(_info.get("currentPrice") or _info.get("regularMarketPrice") or 0)
+    _shares_info= float(_info.get("sharesOutstanding") or 0)
+    if _price_info > 0 and _shares_info > 0:
+        _mktcap_m = _price_info * _shares_info / 1e6   # $M
+        ps_ratio  = _mktcap_m / total_revenue.replace(0, np.nan)
+    else:
+        ps_ratio  = pd.Series(np.nan, index=common_cols)
+
+    # ── 股权稀释率 = (稀释股本 - 基本股本) / 基本股本 × 100 ────────
+    def _align_optional(s: pd.Series) -> pd.Series:
+        s = _to_str_index(s)
+        return s.reindex(common_cols) if not s.empty else pd.Series(np.nan, index=common_cols)
+
+    basic_s   = _align_optional(_row(inc, "BasicAverageShares", "Basic Average Shares",
+                                         "BasicShares", "Basic Shares"))
+    diluted_s = _align_optional(_row(inc, "DilutedAverageShares", "Diluted Average Shares",
+                                          "DilutedShares", "Diluted Shares"))
+    dilution  = (diluted_s / basic_s.replace(0, np.nan) - 1) * 100
+
     metrics = pd.DataFrame({
         "ROE (%)":          roe,
         "ROIC (%)":         roic,
         "Gross Margin (%)": gross_margin,
         "FCF ($M)":         fcf / 1e6,
         "D/E Ratio":        de_ratio,
+        "P/S":              ps_ratio,
+        "Dilution (%)":     dilution,
     })
 
     # 按时间升序排列，取最近 5 年（含 TTM 列如果存在）
@@ -776,6 +799,82 @@ def calculate_dcf_value(
 
     except Exception as e:
         result["error"] = f"DCF 计算异常: {e}"
+
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 二·五、Benchmark 对比（股票 vs 指数基金）
+# ═══════════════════════════════════════════════════════════════════
+
+def fetch_benchmark_comparison(ticker: str, benchmark: str = "SPY") -> dict:
+    """
+    计算股票与基准指数（默认 SPY）的历史总回报对比。
+
+    返回 dict，包含：
+        ticker, benchmark, ipo_date
+        since_ipo / 1yr / 3yr / 5yr / 10yr   —— 各时间段
+            ticker_return (%)
+            benchmark_return (%)
+            alpha (%)          = ticker_return - benchmark_return
+    """
+    import datetime as _dt
+
+    def _normalize(df: pd.DataFrame) -> pd.DataFrame:
+        if df.index.tz is not None:
+            df = df.copy()
+            df.index = df.index.tz_localize(None)
+        return df
+
+    def _pct_return(hist: pd.DataFrame, start) -> float | None:
+        start_ts = pd.Timestamp(start)
+        sub = hist[hist.index >= start_ts]
+        if len(sub) < 2:
+            return None
+        s = float(sub["Close"].iloc[0])
+        e = float(sub["Close"].iloc[-1])
+        return (e / s - 1) * 100 if s > 0 else None
+
+    try:
+        tk_hist = _normalize(yf.Ticker(ticker).history(period="max"))
+        bm_hist = _normalize(yf.Ticker(benchmark).history(period="max"))
+    except Exception as e:
+        return {"error": str(e)}
+
+    if tk_hist.empty or bm_hist.empty:
+        return {"error": "历史数据不可用"}
+
+    ipo_start = max(tk_hist.index[0], bm_hist.index[0])
+    today     = _dt.datetime.now()
+
+    result = {
+        "ticker":    ticker.upper(),
+        "benchmark": benchmark,
+        "ipo_date":  str(ipo_start.date()),
+    }
+
+    # Since IPO / earliest common date
+    tk_ipo = _pct_return(tk_hist, ipo_start)
+    bm_ipo = _pct_return(bm_hist, ipo_start)
+    result["since_ipo"] = {
+        "ticker_return":    tk_ipo,
+        "benchmark_return": bm_ipo,
+        "alpha": (tk_ipo - bm_ipo) if (tk_ipo is not None and bm_ipo is not None) else None,
+    }
+
+    # Fixed time horizons
+    for years, label in [(1, "1yr"), (3, "3yr"), (5, "5yr"), (10, "10yr")]:
+        start = today - _dt.timedelta(days=int(years * 365.25))
+        if start < ipo_start:
+            continue
+        tk_r = _pct_return(tk_hist, start)
+        bm_r = _pct_return(bm_hist, start)
+        if tk_r is not None and bm_r is not None:
+            result[label] = {
+                "ticker_return":    tk_r,
+                "benchmark_return": bm_r,
+                "alpha":            tk_r - bm_r,
+            }
 
     return result
 

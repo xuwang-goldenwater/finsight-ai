@@ -750,9 +750,21 @@ _COMMITTEE_SYSTEM_ZH = """\
 ● 本次量化财务数据截止日期：{data_date}
 ● 数据时差：约 {data_lag} 个月
 
-规则一（时态）：
+规则一（时态）— 最高执行优先级：
   2024 年、2025 年及 {data_date} 之前发生的一切均属【已发生历史事实】。
-  必须用过去时态描述。严禁将 2024/2025 年的已知事实写成预测性语句。
+  必须用过去时态描述。
+
+  ❌ 绝对禁止的写法（即使数据来自历史记录也不得使用）：
+    × "2024 年将推出 AI 功能…"
+    × "公司计划于 2025 年完成重组…"
+    × "2025 年将实现盈利…"
+
+  ✅ 唯一正确的写法：
+    ✓ "公司已于 2024 年推出 AI 功能…"
+    ✓ "2025 年完成重组后，公司已进入…"
+    ✓ "2025 年实现盈利，全年利润约…"
+
+  仅对 {today} 之后尚未发生的事件，才可使用"预期"、"将"等前瞻词汇。
 
 规则二（禁止敷衍声明）：
   ⛔ 严禁出现"最新数据待更新"、"数据暂不可用"、"待补充"等推卸性表述。
@@ -771,6 +783,11 @@ _COMMITTEE_SYSTEM_ZH = """\
 
 # FinSight 深度投资报告 — {ticker}
 **生成时间**: {date}  |  **数据截止**: {data_date}  |  **方法论**: Ray Dalio《原则》五步流程
+
+---
+
+## 🏢 核心业务概述
+> 用 2-3 句话说明该公司的核心商业模式、主要收入来源，以及使其区别于竞争对手的核心竞争优势或护城河。不超过 80 字。
 
 ---
 
@@ -815,9 +832,21 @@ You use Systems/Machine Thinking — decompose every driver, never rely on gut f
 ● Quantitative financial data covers through: {data_date}
 ● Data lag: approximately {data_lag} months
 
-Rule 1 (Tense):
-  All data and events prior to {data_date} are HISTORICAL FACTS.
-  Always use past tense. NEVER describe 2024/2025 facts with forward-looking language.
+Rule 1 (Tense) — HIGHEST EXECUTION PRIORITY:
+  All data and events prior to {data_date} are HISTORICAL FACTS. Always use past tense.
+
+  ❌ FORBIDDEN (even if sourced from historical data):
+    × "In 2024, the company will launch its AI feature…"
+    × "The company plans to complete the restructuring in 2025…"
+    × "2025 will mark the first profitable year…"
+
+  ✅ ONLY CORRECT FORMS:
+    ✓ "The company launched its AI feature in 2024…"
+    ✓ "After completing the 2025 restructuring, the company has…"
+    ✓ "FY2025 marked the first profitable year, with earnings of…"
+
+  Forward-looking language ("will", "expected to", "is projected to") is ONLY permitted
+  for events that have NOT yet occurred as of {today}.
 
 Rule 2 (No Cop-Out Disclaimers):
   ⛔ NEVER write "latest data pending", "data unavailable", or any equivalent dodge.
@@ -837,6 +866,11 @@ Output a complete Markdown report strictly following Dalio's Five-Step Process (
 
 # FinSight Deep Investment Report — {ticker}
 **Generated**: {date}  |  **Data through**: {data_date}  |  **Framework**: Ray Dalio's Principles
+
+---
+
+## 🏢 Business Overview
+> In 2-3 sentences, describe the company's core business model, primary revenue streams, and the key competitive advantage or moat that sets it apart from peers. ≤80 words.
 
 ---
 
