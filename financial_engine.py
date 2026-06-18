@@ -826,7 +826,7 @@ def fetch_benchmark_comparison(ticker: str, benchmark: str = "SPY") -> dict:
             df.index = df.index.tz_localize(None)
         return df
 
-    def _pct_return(hist: pd.DataFrame, start) -> float | None:
+    def _pct_return(hist: pd.DataFrame, start):
         start_ts = pd.Timestamp(start)
         sub = hist[hist.index >= start_ts]
         if len(sub) < 2:
