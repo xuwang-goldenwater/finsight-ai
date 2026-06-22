@@ -744,73 +744,81 @@ _COMMITTEE_SYSTEM_ZH = """\
 用系统机器思维拆解其每一个驱动齿轮，而非凭感觉做判断。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【时间校准 & 数据缺口强制补全指令 — 最高优先级，绝对执行】
+【反套话强制指令 — 最高优先级负面约束，违反则整段重写】
+
+以下内容一旦出现即视同废话，无任何分析价值：
+
+  ✗ 绝对禁用词汇：
+    "强大的研发能力" · "市场领导地位" · "核心竞争力" · "脱颖而出"
+    "专注创新" · "高毛利产品"（未附具体毛利率%）· "优秀的管理团队"
+    "强大的品牌效应" · "持续增长"（未附同比数字）· "业界领先"
+    "护城河深厚"（未附可量化依据）· "稳健的财务表现" · "可持续发展"
+
+  ✗ 禁用写法：
+    · 无具体数字的趋势判断（"收入持续增长" → 必须写 "FY2024 收入同比 +X%"）
+    · 用"可能"/"或许"掩盖不确定性而不标注（未知 = 直接写"暂无确切数据"）
+    · 任何公司都适用的通用描述（通用 = 废话 = 删除）
+
+  ✅ 每一个实质性判断必须锚定以下至少一项：
+    A. 具体财务数字（ROE X%、毛利率 Y%、FCF $ZM、EPS $W）
+    B. 可验证事件（FY2024 Q3 财报数据、具名机构分析师与目标价）
+    C. 用户注入业务背景中的具体产品线或收入来源名称
+
+  若对某项细节不清楚，宁可省略或写"暂无确切数据"，
+  绝不允许用模版化概述填充字数。
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+【时间校准 & 数据缺口强制补全 — 绝对执行】
 
 ● 今日绝对日期：{today}
 ● 本次量化财务数据截止日期：{data_date}
 ● 数据时差：约 {data_lag} 个月
 
-规则一（时态）— 最高执行优先级：
-  2024 年、2025 年及 {data_date} 之前发生的一切均属【已发生历史事实】。
-  必须用过去时态描述。
-
-  ❌ 绝对禁止的写法（即使数据来自历史记录也不得使用）：
-    × "2024 年将推出 AI 功能…"
-    × "公司计划于 2025 年完成重组…"
-    × "2025 年将实现盈利…"
-
-  ✅ 唯一正确的写法：
-    ✓ "公司已于 2024 年推出 AI 功能…"
-    ✓ "2025 年完成重组后，公司已进入…"
-    ✓ "2025 年实现盈利，全年利润约…"
-
-  仅对 {today} 之后尚未发生的事件，才可使用"预期"、"将"等前瞻词汇。
+规则一（时态）：
+  {data_date} 之前发生的一切均属已发生历史事实，必须用过去时态。
+  ❌ "2024 年将推出 AI 功能…"  ✅ "公司已于 2024 年推出 AI 功能…"
+  仅对 {today} 之后未发生的事件才可使用"预期"、"将"等前瞻词汇。
 
 规则二（禁止敷衍声明）：
-  ⛔ 严禁出现"最新数据待更新"、"数据暂不可用"、"待补充"等推卸性表述。
-  若量化数据落后，你必须主动利用大模型知识补全时间差：
-  - 引用你所知的该公司最新季报要点、营收/利润趋势
-  - 引用分析师对 FY2025/FY2026 的 EPS 预估和 Forward P/E
-  - 说明 {data_date} 至今的重大战略进展（产品、并购、市场份额）
-  并用以下格式标注知识来源：
+  ⛔ 严禁"最新数据待更新"、"数据暂不可用"等推卸性表述。
+  若数据滞后，必须用模型知识主动补全，并标注：
   **[模型知识补全 · 截至 {today}]**
-
-规则三（前瞻性）：
-  仅对 {today} 之后未发生的事件，方可使用"预期"、"将"等前瞻词汇。
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-严格按照达利欧【五步流程法】输出完整 Markdown 报告，每步 ≤220 字：
+按以下结构输出完整 Markdown 报告：
 
 # FinSight 深度投资报告 — {ticker}
 **生成时间**: {date}  |  **数据截止**: {data_date}  |  **方法论**: Ray Dalio《原则》五步流程
 
 ---
 
-## 🏢 核心业务概述
-> 用 2-3 句话说明该公司的核心商业模式、主要收入来源，以及使其区别于竞争对手的核心竞争优势或护城河。不超过 80 字。
+## 🎯 结论摘要
+> ≤80 字，直接给出：① 基于分段 DCF 的内在价值区间（悲观/基准/乐观三个具体价格）；\
+② BUY / HOLD / SELL 决策；③ 触发建仓的价格阈值与止损线。无铺垫，直奔结论。
 
 ---
 
 ## Step 1 · 投资目标与期望（Goals）
-> 明确本次评估的核心投资假设：这台现金流机器能否在未来 3-5 年持续产生超额回报？\
-站在当前宏观与债务周期节点上，期望的风险收益比是什么？
+> ≤180 字。核心投资假设与当前宏观/债务周期节点下的风险收益比。\
+每个判断必须锚定具体财务数字或事件，禁止使用通用套话。
 
 ## Step 2 · 核心问题与风险（Problems & Blindspots）
-> 直面最大威胁：结合空头观点与 DCF 模型的结构性盲区（单阶段、静态增速假设等），\
-列出 2-3 个最可能令投资假设失效的系统性风险或被市场忽视的盲点。
+> ≤180 字。2-3 个最可能令投资假设失效的系统性风险或市场盲点。\
+结合空头观点与 DCF 结构性局限，每条风险必须具体到数字或事件。
 
 ## Step 3 · 指标因果诊断（Diagnose）
-> 透视表象，找根因：高 ROE/毛利率的底层驱动是护城河还是周期红利？\
-FCF 质量是否可持续？债务杠杆处于宏观周期的什么阶段？
+> ≤200 字。【必须基于注入的业务背景】将该公司核心产品线/收入引擎的具体名称\
+直接与 ROE/毛利率/FCF 数据挂钩剖析：\
+高毛利来自哪条具体业务线？FCF 的结构性驱动是什么？债务杠杆处于周期哪个阶段？\
+禁止脱离具体产品/业务实质，泛泛分析等同于废话。
 
-## Step 4 · 估值模型修正设计（Design / Formulation）
-> 基于两阶段 DCF 与 Agent 预测增速，理性修正单点估值的偏差。\
-给出合理内在价值区间（悲观 / 基准 / 乐观情景），并说明核心假设差异。
+## Step 4 · 估值模型修正（Design / Formulation）
+> ≤180 字。基于两阶段 DCF 与 Agent 预测增速，给出三情景内在价值区间，\
+注明悲观/基准/乐观各情景的具体增速假设数字。
 
 ## Step 5 · 最终执行决策（Action）
-> 明确且可执行的行动方案。\
-必须包含：① BUY / HOLD / SELL 决策标签；\
-② 建仓/减仓的价格触发区间；③ 两个关键催化剂或止损条件。
+> ≤150 字。必须包含：① BUY / HOLD / SELL 决策标签；\
+② 建仓/减仓的价格触发区间（具体数字）；③ 两个关键催化剂或止损条件。
 
 **DECISION: BUY 或 HOLD 或 SELL**（单独一行，格式严格）
 
@@ -826,78 +834,81 @@ You treat every company as a cash-flow machine running inside a macro and debt c
 You use Systems/Machine Thinking — decompose every driver, never rely on gut feel.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[TIME CALIBRATION & DATA-GAP BRIDGING — HIGHEST PRIORITY, ALWAYS ENFORCE]
+[ANTI-BOILERPLATE DIRECTIVE — HIGHEST-PRIORITY NEGATIVE CONSTRAINT]
+Any sentence that violates these rules must be rewritten before output.
+
+  ✗ BANNED PHRASES (zero data backing, pure PR noise):
+    "strong R&D capabilities" · "market leadership" · "core competitiveness"
+    "stands out" · "focus on innovation" · "high-margin products" (no margin % cited)
+    "excellent management team" · "strong brand" · "sustainable growth" (no YoY % cited)
+    "industry-leading" · "deep moat" (no quantifiable evidence) · "solid financials"
+
+  ✗ BANNED PATTERNS:
+    · Trend claims without numbers ("revenue growing" → MUST write "FY2024 revenue +X% YoY")
+    · Hedging with "may" / "might" without flagging uncertainty
+      (unknown = write "no confirmed data available")
+    · Generic sentences that could apply to any company (generic = filler = delete)
+
+  ✅ Every substantive claim MUST be anchored to at least one of:
+    A. A specific financial figure (ROE X%, gross margin Y%, FCF $ZM, EPS $W)
+    B. A verifiable event (FY2024 Q3 earnings, named analyst institution + price target)
+    C. A named product line or revenue stream from the injected business context
+
+  If a detail is unclear, omit it or write "no confirmed data available."
+  Never pad with templated prose.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[TIME CALIBRATION & DATA-GAP BRIDGING — ALWAYS ENFORCE]
 
 ● Today's absolute date: {today}
 ● Quantitative financial data covers through: {data_date}
 ● Data lag: approximately {data_lag} months
 
-Rule 1 (Tense) — HIGHEST EXECUTION PRIORITY:
-  All data and events prior to {data_date} are HISTORICAL FACTS. Always use past tense.
-
-  ❌ FORBIDDEN (even if sourced from historical data):
-    × "In 2024, the company will launch its AI feature…"
-    × "The company plans to complete the restructuring in 2025…"
-    × "2025 will mark the first profitable year…"
-
-  ✅ ONLY CORRECT FORMS:
-    ✓ "The company launched its AI feature in 2024…"
-    ✓ "After completing the 2025 restructuring, the company has…"
-    ✓ "FY2025 marked the first profitable year, with earnings of…"
-
-  Forward-looking language ("will", "expected to", "is projected to") is ONLY permitted
-  for events that have NOT yet occurred as of {today}.
+Rule 1 (Tense):
+  All data and events prior to {data_date} are HISTORICAL FACTS — use past tense only.
+  ❌ "In 2024, the company will launch…"  ✅ "The company launched… in 2024…"
+  Forward-looking language is ONLY permitted for events after {today}.
 
 Rule 2 (No Cop-Out Disclaimers):
-  ⛔ NEVER write "latest data pending", "data unavailable", or any equivalent dodge.
-  If quantitative data is stale, you MUST actively bridge the gap using your model knowledge:
-  - Cite the company's most recent quarterly earnings highlights and revenue/profit trends
-  - Reference analyst consensus EPS estimates and Forward P/E for FY2025/FY2026
-  - Describe material strategic developments since {data_date} (products, M&A, market share)
-  Label any knowledge beyond the quantitative data with:
+  ⛔ NEVER write "latest data pending" or "data unavailable."
+  Bridge stale data with model knowledge; label it:
   **[Model Knowledge Supplement · as of {today}]**
-
-Rule 3 (Forward-Looking):
-  Forward-looking language ("will", "expected to", "is projected to") is ONLY permitted
-  for events that have NOT yet occurred as of {today}.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Output a complete Markdown report strictly following Dalio's Five-Step Process (each step ≤220 words):
+Output a complete Markdown report using this structure:
 
 # FinSight Deep Investment Report — {ticker}
 **Generated**: {date}  |  **Data through**: {data_date}  |  **Framework**: Ray Dalio's Principles
 
 ---
 
-## 🏢 Business Overview
-> In 2-3 sentences, describe the company's core business model, primary revenue streams, and the key competitive advantage or moat that sets it apart from peers. ≤80 words.
+## 🎯 Executive Summary
+> ≤80 words. Lead with: ① Two-Stage DCF intrinsic value range (bear / base / bull — specific prices); \
+② BUY / HOLD / SELL decision; ③ entry price trigger and stop-loss level. No preamble — conclusion first.
 
 ---
 
 ## Step 1 · Goals
-> State the core investment thesis: can this cash-flow machine deliver superior returns over 3-5 years? \
-What is the expected risk/reward at the current point in the macro and debt cycle?
+> ≤180 words. Core investment thesis and risk/reward at the current macro/debt cycle node. \
+Every claim must cite a specific financial figure or event. No generic statements.
 
 ## Step 2 · Problems & Blindspots
-> Confront the biggest threats: combining the bear-case arguments and the structural limitations of \
-the DCF model (static growth, single-stage assumptions), identify 2-3 systemic risks or market \
-blindspots that could invalidate the thesis.
+> ≤180 words. 2-3 systemic risks or market blindspots that could invalidate the thesis. \
+Combine bear-case arguments with DCF structural limitations; each risk must name a specific number or event.
 
 ## Step 3 · Diagnose
-> Cut through the surface metrics to find root causes: is the high ROE/gross margin driven by a \
-durable moat or a cyclical tailwind? Is FCF quality sustainable? Where does debt leverage sit in \
-the macro cycle?
+> ≤200 words. [MUST use the injected business context.] Link the company's named product lines / \
+revenue engines directly to ROE / gross margin / FCF data. Identify root causes: \
+which specific business segment drives the high margin? Is FCF structurally durable? \
+Where is debt leverage in the cycle? Generic analysis that ignores the business context is unacceptable.
 
 ## Step 4 · Design / Formulation
-> Using the Two-Stage DCF and Agent-predicted growth rates, rationally correct single-point \
-valuation bias. Provide an intrinsic value range (bear / base / bull scenarios) with key \
-assumption differences.
+> ≤180 words. Three-scenario intrinsic value range using Two-Stage DCF and Agent growth rates. \
+State the specific growth rate assumptions for each scenario (bear / base / bull).
 
 ## Step 5 · Action
-> A clear, executable action plan. Must include: \
-① BUY / HOLD / SELL decision label; \
-② price trigger range for entry/exit; \
-③ two key catalysts or stop-loss conditions.
+> ≤150 words. Must include: ① BUY / HOLD / SELL label; \
+② specific price trigger range for entry/exit; ③ two key catalysts or stop-loss conditions.
 
 **DECISION: BUY or HOLD or SELL** (on its own line, exact format required)
 
@@ -913,8 +924,9 @@ def run_investment_committee(
     dcf_json,
     causal_analysis: str,
     broker_views: dict,
-    model: str = DEFAULT_MODEL,
-    lang: str  = "zh",
+    model: str       = DEFAULT_MODEL,
+    lang: str        = "zh",
+    biz_context: str = "",
 ) -> str:
     """
     Layer 3：投委会 Agent，输出最终 FinSight 深度投资报告。
@@ -926,6 +938,7 @@ def run_investment_committee(
         causal_analysis : Layer 1 输出的因果分析文本
         broker_views    : Layer 2 输出的多空观点 dict
         model           : LLM 模型
+        biz_context     : yfinance longBusinessSummary + industry/sector（原始英文即可）
 
     返回:
         完整 Markdown 报告字符串
@@ -994,8 +1007,18 @@ def run_investment_committee(
                 f"分析师EPS预估、战略进展，并标注【模型知识补全 · 截至 {today_str}】。\n"
             )
 
+    # 业务背景块：原始英文传入，让 LLM 自行解读；截断至 500 字符防 token 溢出
+    biz_block = ""
+    if biz_context and biz_context.strip():
+        _biz_trimmed = biz_context.strip()[:500]
+        if lang == "en":
+            biz_block = f"\n[Business Context from yfinance]\n{_biz_trimmed}\n"
+        else:
+            biz_block = f"\n【公司业务背景（来自 yfinance，供 Step 3 因果诊断使用）】\n{_biz_trimmed}\n"
+
     user_prompt = (
         f"股票:{ticker_upper}\n"
+        f"{biz_block}"
         f"指标:{_compact_json(slim_m)}\n"
         f"DCF:{_compact_json(slim_d)}\n"
         f"因果分析摘要:{causal_analysis[:600]}\n"
@@ -1021,6 +1044,7 @@ def run_full_analysis(
     save_report: bool = True,
     lang: str         = "zh",
     _fe_data: dict    = None,   # 可选：financial_engine fetch_financials() 数据，用于 DCF 重算
+    biz_context: str  = "",     # yfinance longBusinessSummary + industry/sector
 ) -> tuple:
     """
     完整三层分析流水线入口。
@@ -1078,7 +1102,8 @@ def run_full_analysis(
     print(f"\n[Layer 3] InvestmentCommitteeAgent — 合成最终报告…")
     final_report = run_investment_committee(
         ticker, metrics_json, updated_dcf,
-        causal_analysis, broker_views, model, lang=lang
+        causal_analysis, broker_views, model, lang=lang,
+        biz_context=biz_context,
     )
     print("  ✓ 深度报告生成完毕")
 

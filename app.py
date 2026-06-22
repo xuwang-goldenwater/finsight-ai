@@ -1087,7 +1087,7 @@ def load_broker_views(ticker: str, lang_code: str = "zh"):
 
 @st.cache_data(show_spinner=False, ttl=3600)
 def load_full_analysis(ticker: str, metrics_json: str, dcf_json: str,
-                       lang_code: str = "zh"):
+                       lang_code: str = "zh", biz_context: str = ""):
     _, aa, _, err = _import_backends()
     if err:
         return None, None, None, None, err
@@ -1099,6 +1099,7 @@ def load_full_analysis(ticker: str, metrics_json: str, dcf_json: str,
             use_search=False,
             save_report=False,
             lang=lang_code,
+            biz_context=biz_context,
         )
         # run_full_analysis returns (report, stage1, stage2, updated_dcf)
         if isinstance(result, tuple) and len(result) == 4:
@@ -1630,8 +1631,20 @@ if not is_backtest:
                     if k != "ticker_obj"
                     and isinstance(v, (str, int, float, list, dict, type(None)))
                 })
+                # 从 company_info 提取业务背景，注入 LLM 防止套话
+                _ci = load_company_info(ticker_input) or {}
+                _biz_parts = []
+                _long_biz = _ci.get("longBusinessSummary", "")
+                if _long_biz:
+                    _biz_parts.append(_long_biz[:500])
+                _sector   = _ci.get("sector", "")
+                _industry = _ci.get("industry", "")
+                if _sector or _industry:
+                    _biz_parts.append(f"Sector: {_sector} | Industry: {_industry}")
+                _biz_ctx = "\n".join(_biz_parts)
+
                 final_report, stage1_g, stage2_g, updated_dcf, err_report = load_full_analysis(
-                    ticker_input, m_json, d_json, lang_code)
+                    ticker_input, m_json, d_json, lang_code, _biz_ctx)
                 # 将 Agent 预测增速写入 session_state，供左侧面板展示
                 st.session_state["_stage1_growth"]        = stage1_g
                 st.session_state["_stage2_growth_start"]  = stage2_g
